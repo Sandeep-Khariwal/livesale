@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import assert from "assert";
 
 const DB_URL = process.env.MONGODB_URI || process.env.DB_URL_LS;
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = "https://livesale-git-main-sandeep-khariwals-projects.vercel.app/";
 
 async function runTests() {
   console.log("==> Connecting to database to seed test data...");
