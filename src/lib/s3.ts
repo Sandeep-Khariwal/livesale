@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const region = process.env.AWS_REGION || "ap-south-1";
@@ -6,7 +6,7 @@ const accessKeyId = process.env.AWS_ACCESS_KEY_ID!;
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY!;
 const bucket = process.env.CONTENT_IMAGES_BUCKET!;
 
-const s3Client = new S3Client({
+const s3Client = new S3({
   region,
   credentials: {
     accessKeyId,
@@ -22,15 +22,13 @@ export async function uploadToS3(
   fileName: string,
   contentType: string
 ): Promise<string> {
-  const command = new PutObjectCommand({
+  await s3Client.putObject({
     Bucket: bucket,
     Key: fileName,
     Body: fileBuffer,
     ContentType: contentType,
   });
 
-  // @ts-expect-error
-  await s3Client.send(command);
   return fileName;
 }
 
