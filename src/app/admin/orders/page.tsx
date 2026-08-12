@@ -92,7 +92,7 @@ export default function OrdersPage() {
                   <td style={{ padding: "1rem" }}>
                     {order.paymentStatus === "PENDING" && (
                       <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button onClick={() => window.open(`/api/admin/orders/screenshot?orderId=${order._id}`, '_blank')} style={{ padding: "0.25rem 0.5rem", border: "1px solid var(--border)", backgroundColor: "transparent", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.75rem" }}>
+                        <button onClick={() => window.open(`/api/admin/orders/screenshot?orderId=${order._id}`, '_blank')} style={{ padding: "0.25rem 0.5rem", border: "1px solid #fff", color:"#fff", backgroundColor: "transparent", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.75rem" }}>
                           View Image
                         </button>
                         <button onClick={() => handleAction(order._id, "VERIFY")} style={{ padding: "0.25rem 0.5rem", border: "none", backgroundColor: "var(--success)", color: "white", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.75rem" }}>

@@ -84,8 +84,10 @@ export async function POST(request: NextRequest) {
     const order = new Order({
       orderNumber,
       productId: product._id,
+      productCodeSnapshot: product.productCode,
       customerId: customer._id,
       amount: product.price,
+      priceSnapshot: product.price,
       paymentStatus: "PENDING",
       orderStatus: "PENDING_PAYMENT_VERIFICATION",
       reservationExpiresAt: expiresAt,

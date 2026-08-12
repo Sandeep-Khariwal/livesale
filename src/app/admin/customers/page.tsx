@@ -5,8 +5,47 @@ export const metadata = { title: "Customers | OMS Admin" };
 
 export default async function CustomersPage() {
   await dbConnect();
-  const customers = await Customer.find().sort({ createdAt: -1 }).lean();
-
+  const customers = await Customer.aggregate([
+    {
+      $lookup: {
+        from: 'orders',
+        localField: '_id',
+        foreignField: 'customerId',
+        as: 'orders'
+      }
+    },
+    {
+      $addFields: {
+        totalOrders: { $size: "$orders" },
+        confirmedOrders: {
+          $size: {
+            $filter: {
+              input: "$orders",
+              as: "order",
+              cond: { $eq: ["$$order.orderStatus", "CONFIRMED"] }
+            }
+          }
+        },
+        totalOrderValue: {
+          $sum: {
+            $map: {
+              input: {
+                $filter: {
+                  input: "$orders",
+                  as: "order",
+                  cond: { $eq: ["$$order.orderStatus", "CONFIRMED"] }
+                }
+              },
+              as: "order",
+              in: "$$order.amount"
+            }
+          }
+        },
+        lastOrderDate: { $max: "$orders.createdAt" }
+      }
+    },
+    { $sort: { createdAt: -1 } }
+  ]);
   return (
     <div>
       <h1 style={{ marginBottom: "2rem" }}>Customers</h1>
@@ -18,6 +57,10 @@ export default async function CustomersPage() {
               <th style={{ padding: "1rem" }}>Name</th>
               <th style={{ padding: "1rem" }}>Mobile</th>
               <th style={{ padding: "1rem" }}>WhatsApp</th>
+              <th style={{ padding: "1rem" }}>Total Orders</th>
+              <th style={{ padding: "1rem" }}>Confirmed Orders</th>
+              <th style={{ padding: "1rem" }}>Total Value</th>
+              <th style={{ padding: "1rem" }}>Last Order</th>
               <th style={{ padding: "1rem" }}>Joined</th>
             </tr>
           </thead>
@@ -32,6 +75,10 @@ export default async function CustomersPage() {
                   <td style={{ padding: "1rem", fontWeight: 500 }}>{customer.name}</td>
                   <td style={{ padding: "1rem" }}>{customer.mobile}</td>
                   <td style={{ padding: "1rem" }}>{customer.whatsapp || "-"}</td>
+                  <td style={{ padding: "1rem" }}>{customer.totalOrders}</td>
+                  <td style={{ padding: "1rem" }}>{customer.confirmedOrders}</td>
+                  <td style={{ padding: "1rem" }}>₹{customer.totalOrderValue}</td>
+                  <td style={{ padding: "1rem" }}>{customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : "-"}</td>
                   <td style={{ padding: "1rem" }}>{new Date(customer.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))

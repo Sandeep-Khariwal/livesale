@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       // 3. Complete Stock Allocation
       await Product.updateOne(
         { _id: order.productId },
-        { $inc: { reservedStock: -1, soldStock: 1 } },
+        { $inc: { reservedStock: -1 } },
         { session }
       );
 

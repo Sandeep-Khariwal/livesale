@@ -9,6 +9,11 @@ export default function ProductsClient({ initialProducts }: { initialProducts: a
   const [isEditing, setIsEditing] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   
+  // Adjust Stock State
+  const [adjustingProduct, setAdjustingProduct] = useState<any>(null);
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustReason, setAdjustReason] = useState("Restock");
+  
   // Form State
   const [productCode, setProductCode] = useState("");
   const [price, setPrice] = useState("");
@@ -24,6 +29,7 @@ export default function ProductsClient({ initialProducts }: { initialProducts: a
     setStatus("AVAILABLE");
     setIsAdding(false);
     setIsEditing(null);
+    setAdjustingProduct(null);
   };
 
   const openEdit = (product: any) => {
@@ -74,6 +80,35 @@ export default function ProductsClient({ initialProducts }: { initialProducts: a
       }
     } catch (err) {
       alert("Error updating product");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdjustSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: adjustingProduct._id,
+          adjustment: Number(adjustAmount),
+          reason: adjustReason
+        })
+      });
+      if (res.ok) {
+        setAdjustingProduct(null);
+        setAdjustAmount("");
+        setAdjustReason("Restock");
+        router.refresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to adjust stock");
+      }
+    } catch (err) {
+      alert("Error adjusting stock");
     } finally {
       setLoading(false);
     }
@@ -152,6 +187,30 @@ export default function ProductsClient({ initialProducts }: { initialProducts: a
         </div>
       )}
 
+      {adjustingProduct && (
+        <div style={{ marginBottom: "2rem", padding: "1.5rem", backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "0.5rem" }}>
+          <h2>Adjust Stock: {adjustingProduct.productCode}</h2>
+          <form onSubmit={handleAdjustSubmit} style={{ display: "flex", gap: "1rem", flexDirection: "column", maxWidth: "400px" }}>
+            <p style={{ margin: 0 }}>Current Stock: <strong>{adjustingProduct.availableStock}</strong></p>
+            
+            <label style={{ display: "block", marginBottom: "0.5rem", marginTop: "1rem" }}>Adjustment Quantity (use negative to remove)</label>
+            <input type="number" value={adjustAmount} onChange={e => setAdjustAmount(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+            
+            <label style={{ display: "block", marginBottom: "0.5rem", marginTop: "1rem" }}>Reason</label>
+            <input type="text" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+
+            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+              <button type="submit" disabled={loading} style={{ padding: "0.5rem 1rem", backgroundColor: "var(--primary)", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer" }}>
+                {loading ? "Saving..." : "Confirm Adjustment"}
+              </button>
+              <button type="button" onClick={() => setAdjustingProduct(null)} style={{ padding: "0.5rem 1rem", backgroundColor: "transparent", border: "1px solid var(--border)", borderRadius: "0.25rem", cursor: "pointer", color: "var(--foreground)" }}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "0.5rem" }}>
           <thead style={{ borderBottom: "1px solid var(--border)", backgroundColor: "rgba(0,0,0,0.02)" }}>
@@ -190,6 +249,7 @@ export default function ProductsClient({ initialProducts }: { initialProducts: a
                   <td style={{ padding: "1rem" }}>{new Date(product.updatedAt).toLocaleDateString()}</td>
                   <td style={{ padding: "1rem", display: "flex", gap: "0.5rem" }}>
                     <button onClick={() => openEdit(product)} style={{ padding: "0.25rem 0.5rem", border: "1px solid var(--border)", backgroundColor: "transparent", borderRadius: "0.25rem", cursor: "pointer", color: "var(--primary)", fontWeight: "bold" }}>Edit</button>
+                    <button onClick={() => setAdjustingProduct(product)} style={{ padding: "0.25rem 0.5rem", border: "1px solid var(--border)", backgroundColor: "transparent", borderRadius: "0.25rem", cursor: "pointer", color: "var(--foreground)", fontWeight: "bold" }}>Adjust Stock</button>
                   </td>
                 </tr>
               ))
