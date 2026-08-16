@@ -13,37 +13,62 @@ export const revalidate = 0;
 export async function GET(req: NextRequest) {
   await dbConnect();
 
-  const view = req.nextUrl.searchParams.get('view') || 'pending'; // 'pending' | 'dispatched'
+  const view = req.nextUrl.searchParams.get('view') || 'pending';
 
+  // Keep these values as string literals so Mongoose's TypeScript
+  // types don't widen them to `string`.
   const filter =
     view === 'dispatched'
-      ? { orderStatus: 'SHIPPED' }
-      : { paymentStatus: 'VERIFIED', orderStatus: 'CONFIRMED' };
+      ? { orderStatus: 'SHIPPED' as const }
+      : {
+          paymentStatus: 'VERIFIED' as const,
+          orderStatus: 'CONFIRMED' as const,
+        };
 
   const orders = await Order.find(filter)
-    .sort(view === 'dispatched' ? { dispatchedAt: -1 } : { createdAt: 1 }) // history: newest dispatched first
+    .sort(
+      view === 'dispatched'
+        ? { dispatchedAt: -1 }
+        : { createdAt: 1 }
+    )
     .lean();
 
   const orderIds = orders.map((o) => o._id);
   const customerIds = orders.map((o) => o.customerId);
 
   const [addresses, customers] = await Promise.all([
-    ShippingAddress.find({ orderId: { $in: orderIds } }).lean(),
-    Customer.find({ _id: { $in: customerIds } }).lean(),
+    ShippingAddress.find({
+      orderId: { $in: orderIds },
+    }).lean(),
+
+    Customer.find({
+      _id: { $in: customerIds },
+    }).lean(),
   ]);
 
-  const addressByOrderId = new Map(addresses.map((a) => [String(a.orderId), a]));
-  const customerById = new Map(customers.map((c) => [String(c._id), c]));
+  const addressByOrderId = new Map(
+    addresses.map((a) => [String(a.orderId), a])
+  );
+
+  const customerById = new Map(
+    customers.map((c) => [String(c._id), c])
+  );
 
   const result = orders.map((order: any) => ({
     id: String(order._id),
     orderNumber: order.orderNumber,
     productCode: order.productCodeSnapshot,
     amount: order.amount,
-    customer: customerById.get(String(order.customerId)) || null,
-    address: addressByOrderId.get(String(order._id)) || null,
+
+    customer:
+      customerById.get(String(order.customerId)) || null,
+
+    address:
+      addressByOrderId.get(String(order._id)) || null,
+
     createdAt: order.createdAt,
-    // dispatch info — only meaningful for 'dispatched' view
+
+    // Dispatch info — only meaningful for "dispatched" view
     dispatchedAt: order.dispatchedAt || null,
     courierName: order.courierName || null,
     trackingId: order.trackingId || null,
@@ -51,7 +76,11 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(
     { orders: result },
-    { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    }
   );
 }
 
@@ -59,20 +88,38 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   await dbConnect();
 
-  const { orderId, courierName, trackingId, adminId } = await req.json();
+  const {
+    orderId,
+    courierName,
+    trackingId,
+    adminId,
+  } = await req.json();
 
   if (!orderId) {
-    return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'orderId is required' },
+      { status: 400 }
+    );
   }
 
   const existing = await Order.findById(orderId).lean();
+
   if (!existing) {
-    return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Order not found' },
+      { status: 404 }
+    );
   }
 
-  if (existing.paymentStatus !== 'VERIFIED' || existing.orderStatus !== 'CONFIRMED') {
+  if (
+    existing.paymentStatus !== 'VERIFIED' ||
+    existing.orderStatus !== 'CONFIRMED'
+  ) {
     return NextResponse.json(
-      { error: 'Order is not eligible for dispatch (payment not verified or not confirmed)' },
+      {
+        error:
+          'Order is not eligible for dispatch (payment not verified or not confirmed)',
+      },
       { status: 400 }
     );
   }
@@ -85,22 +132,36 @@ export async function PATCH(req: NextRequest) {
     courierName,
     trackingId,
   };
-  if (adminId) update.dispatchedById = new mongoose.Types.ObjectId(adminId);
 
-  // Use findOneAndUpdate (not findById + save) so Mongoose only touches the
-  // fields we're setting, instead of re-validating the ENTIRE document.
-  // This avoids failures on legacy/incomplete orders (e.g. missing
-  // productCodeSnapshot / priceSnapshot from older or manually-inserted docs).
-  // The filter also re-checks status atomically, guarding against double-dispatch.
+  if (adminId) {
+    update.dispatchedById = new mongoose.Types.ObjectId(adminId);
+  }
+
+  // Use findOneAndUpdate instead of findById + save so Mongoose only
+  // updates the fields being changed. This avoids re-validating the
+  // entire document and causing failures on legacy/incomplete orders.
+  //
+  // The status conditions in the filter also make the operation atomic,
+  // preventing the same order from being dispatched twice.
   const order = await Order.findOneAndUpdate(
-    { _id: orderId, paymentStatus: 'VERIFIED', orderStatus: 'CONFIRMED' },
-    { $set: update },
-    { new: true }
+    {
+      _id: orderId,
+      paymentStatus: 'VERIFIED',
+      orderStatus: 'CONFIRMED',
+    },
+    {
+      $set: update,
+    },
+    {
+      new: true,
+    }
   );
 
   if (!order) {
     return NextResponse.json(
-      { error: 'Order not found or already processed' },
+      {
+        error: 'Order not found or already processed',
+      },
       { status: 400 }
     );
   }
@@ -109,8 +170,13 @@ export async function PATCH(req: NextRequest) {
     orderId: order._id,
     fromStatus,
     toStatus: 'SHIPPED',
-    note: trackingId ? `Dispatched via ${courierName || 'courier'} - ${trackingId}` : 'Dispatched',
+    note: trackingId
+      ? `Dispatched via ${courierName || 'courier'} - ${trackingId}`
+      : 'Dispatched',
   });
 
-  return NextResponse.json({ success: true, order });
+  return NextResponse.json({
+    success: true,
+    order,
+  });
 }

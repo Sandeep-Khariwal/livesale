@@ -95,7 +95,6 @@ export default function OrdersPage() {
     return list;
   }, [orders, filter, query]);
 
-  
   const initials = (name?: string) =>
     (name || "?")
       .split(" ")
