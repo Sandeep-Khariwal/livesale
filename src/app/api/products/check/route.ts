@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import { Product } from "@/models/Product";
+import { getSignedS3Url } from "@/lib/s3";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +27,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function returnProductStatus(product: any) {
+async function returnProductStatus(product: any) {
+  // NEW: generate signed image URL if imageKey exists
+  const imageUrl = product.imageKey
+    ? await getSignedS3Url(product.imageKey, 3600)
+    : null;
+
   if (product.status !== "AVAILABLE" || product.availableStock <= 0) {
     return NextResponse.json({
       available: false,
@@ -35,6 +41,7 @@ function returnProductStatus(product: any) {
         code: product.productCode,
         price: product.price,
         status: "SOLD_OUT",
+        imageUrl, // NEW
       },
     });
   }
@@ -47,6 +54,7 @@ function returnProductStatus(product: any) {
       price: product.price,
       stock: product.availableStock,
       status: "AVAILABLE",
+      imageUrl, // NEW
     },
   });
 }

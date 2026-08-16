@@ -8,6 +8,7 @@ export interface IOrder extends Document {
   amount: number;
   priceSnapshot: number;
   paymentStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  // NOTE: added 'SHIPPED' and 'DELIVERED' so the dispatch flow has somewhere to go
   orderStatus:
     | 'PENDING_PAYMENT_VERIFICATION'
     | 'CONFIRMED'
@@ -17,9 +18,9 @@ export interface IOrder extends Document {
     | 'EXPIRED';
   reservationExpiresAt: Date;
 
-  // dispatch tracking
+  // --- NEW: dispatch tracking fields ---
   dispatchedAt?: Date;
-  dispatchedById?: mongoose.Types.ObjectId;
+  dispatchedById?: mongoose.Types.ObjectId; // which admin dispatched it
   courierName?: string;
   trackingId?: string;
 
@@ -62,6 +63,7 @@ const OrderSchema = new Schema<IOrder>(
   { timestamps: true }
 );
 
+// speeds up the dispatch page query (paymentStatus + orderStatus filter)
 OrderSchema.index({ paymentStatus: 1, orderStatus: 1 });
 
 export const Order: Model<IOrder> =

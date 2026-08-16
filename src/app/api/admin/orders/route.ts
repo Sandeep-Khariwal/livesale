@@ -3,7 +3,7 @@ import dbConnect from "@/lib/mongoose";
 import { Order } from "@/models/Order";
 import { Customer } from "@/models/Customer";
 import { Product } from "@/models/Product";
-import { Payment } from "@/models/Payment";
+import { ShippingAddress } from "@/models/ShippingAddress";
 
 export async function GET() {
   try {
@@ -16,12 +16,26 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Fetch all shipping addresses for these orders in one query
+    const orderIds = orders.map((o: any) => o._id);
+    const addresses = await ShippingAddress.find({ orderId: { $in: orderIds } }).lean();
+    const addressMap = new Map(addresses.map((a: any) => [a.orderId.toString(), a]));
+
     // Re-map for the frontend
-    const mappedOrders = orders.map((o: any) => ({
-      ...o,
-      customer: o.customerId,
-      product: o.productId,
-    }));
+    const mappedOrders = orders.map((o: any) => {
+      const addr = addressMap.get(o._id.toString());
+      return {
+        ...o,
+        customer: {
+          ...o.customerId,
+          address: addr?.address,
+          city: addr?.city,
+          state: addr?.state,
+          pincode: addr?.pincode,
+        },
+        product: o.productId,
+      };
+    });
 
     return NextResponse.json({ orders: mappedOrders });
   } catch (error) {
