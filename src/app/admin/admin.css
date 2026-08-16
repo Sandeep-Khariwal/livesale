@@ -125,3 +125,228 @@
   text-align: center;
   margin-top: 1rem;
 }
+/* src/app/admin/admin.css */
+
+:root {
+  --a-ink: #150b0e;
+  --a-surface: #1c0f14;
+  --a-surface-alt: #211217;
+  --a-hairline: rgba(212, 175, 90, 0.18);
+  --a-gold: #d4af5a;
+  --a-gold-bright: #f3d68f;
+  --a-cream: #f6ecd9;
+  --a-muted: #a8927b;
+  --a-emerald: #4fae7a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--a-ink);
+  color: var(--a-cream);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ===== SIDEBAR ===== */
+.admin-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--a-surface);
+  border-right: 1px solid var(--a-hairline);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.admin-brand {
+  padding: 0 1.5rem 1.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--a-hairline);
+}
+
+.admin-brand h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--a-gold-bright), var(--a-gold) 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 0.75rem;
+}
+
+.admin-nav a {
+  display: flex;
+  align-items: center;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--a-muted);
+  text-decoration: none;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.admin-nav a:hover {
+  background: rgba(212, 175, 90, 0.08);
+  color: var(--a-gold-bright);
+}
+
+/* ===== MAIN CONTENT ===== */
+.admin-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--a-hairline);
+  background: var(--a-surface-alt);
+  font-size: 0.9rem;
+  color: var(--a-muted);
+}
+
+.admin-header div {
+  font-weight: 500;
+  color: var(--a-cream);
+}
+
+.admin-page-content {
+  flex: 1;
+  padding: 1.5rem 2rem 3rem;
+  overflow-x: hidden;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--a-hairline);
+    padding: 1rem 0;
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0.5rem 1rem;
+  }
+
+  .admin-nav a {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .admin-page-content {
+    padding: 1rem 1rem 2rem;
+  }
+
+  .admin-header {
+    padding: 0.85rem 1rem;
+  }
+}
+/* ===== CUSTOMERS TABLE ===== */
+.cust-title {
+  margin-bottom: 2rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--a-cream);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.cust-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background: var(--a-surface);
+  border: 1px solid var(--a-hairline);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.cust-table thead {
+  border-bottom: 1px solid var(--a-hairline);
+  background: var(--a-surface-alt);
+}
+
+.cust-table th {
+  padding: 0.9rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--a-muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cust-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--a-hairline);
+  font-size: 0.88rem;
+  color: var(--a-cream);
+}
+
+.cust-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cust-table tr:hover td {
+  background: rgba(212, 175, 90, 0.03);
+}
+
+.cust-name-cell {
+  font-weight: 600;
+  color: var(--a-gold-bright);
+}
+
+.cust-confirmed-cell {
+  font-weight: 700;
+  color: var(--a-emerald);
+}
+
+.cust-value-cell {
+  font-weight: 700;
+  color: var(--a-cream);
+}
+
+.cust-empty-row {
+  padding: 2rem;
+  text-align: center;
+  opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+  .cust-title {
+    font-size: 1.3rem;
+  }
+}
+

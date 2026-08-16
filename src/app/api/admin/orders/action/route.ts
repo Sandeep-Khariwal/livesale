@@ -7,68 +7,49 @@ import { Product } from "@/models/Product";
 import { StockTransaction } from "@/models/StockTransaction";
 import { OrderStatusHistory } from "@/models/OrderStatusHistory";
 
-export async function POST(request: NextRequest) {
-  let session: mongoose.ClientSession | null = null;
-  
+async function runOrderAction(orderId: string, action: "VERIFY" | "REJECT") {
+  const session = await mongoose.startSession();
   try {
-    const { orderId, action } = await request.json();
-    
-    if (!orderId || !["VERIFY", "REJECT"].includes(action)) {
-      return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
-    }
-
-    await dbConnect();
-    session = await mongoose.startSession();
     session.startTransaction();
 
-    const order = await Order.findById(orderId).session(session);
-    if (!order || order.paymentStatus !== "PENDING") {
+    // Atomic update: only proceeds if order is still PENDING (also guards against double-processing)
+    const newPaymentStatus = action === "VERIFY" ? "VERIFIED" : "REJECTED";
+    const newOrderStatus = action === "VERIFY" ? "CONFIRMED" : "CANCELLED";
+
+    const order = await Order.findOneAndUpdate(
+      { _id: orderId, paymentStatus: "PENDING" },
+      { $set: { paymentStatus: newPaymentStatus, orderStatus: newOrderStatus } },
+      { session, new: true } // runValidators intentionally omitted — avoids re-validating legacy/untouched fields
+    );
+
+    if (!order) {
       await session.abortTransaction();
-      return NextResponse.json({ error: "Order not found or already processed" }, { status: 400 });
+      return { status: 400, body: { error: "Order not found or already processed" } };
     }
 
+    await Payment.updateOne({ orderId: order._id }, { status: newPaymentStatus }, { session });
+
     if (action === "VERIFY") {
-      // 1. Update Order Status
-      order.paymentStatus = "VERIFIED";
-      order.orderStatus = "CONFIRMED";
-      await order.save({ session });
-
-      // 2. Update Payment Record
-      await Payment.updateOne({ orderId: order._id }, { status: "VERIFIED" }, { session });
-
-      // 3. Complete Stock Allocation
       await Product.updateOne(
         { _id: order.productId },
         { $inc: { reservedStock: -1 } },
         { session }
       );
 
-      // 4. Audit Trail
       const history = new OrderStatusHistory({
         orderId: order._id,
-        status: "CONFIRMED",
+        toStatus: "CONFIRMED",
         note: "Payment verified by admin",
       });
       await history.save({ session });
-
     } else if (action === "REJECT") {
-      // 1. Cancel Order
-      order.paymentStatus = "REJECTED";
-      order.orderStatus = "CANCELLED";
-      await order.save({ session });
-
-      // 2. Update Payment Record
-      await Payment.updateOne({ orderId: order._id }, { status: "REJECTED" }, { session });
-
-      // 3. Release Reserved Stock (Optimistic release)
       const product = await Product.findById(order.productId).session(session);
       if (product) {
         product.reservedStock = Math.max(0, product.reservedStock - 1);
         product.availableStock += 1;
-        product.status = "AVAILABLE"; // Product comes back online
+        product.status = "AVAILABLE";
         await product.save({ session });
 
-        // Reverse stock transaction
         const stockTx = new StockTransaction({
           productId: product._id,
           type: "RESERVATION_RELEASE",
@@ -81,21 +62,50 @@ export async function POST(request: NextRequest) {
 
       const history = new OrderStatusHistory({
         orderId: order._id,
-        status: "CANCELLED",
+        toStatus: "CANCELLED",
         note: "Payment rejected by admin. Stock released.",
       });
       await history.save({ session });
     }
 
     await session.commitTransaction();
-    session.endSession();
-
-    return NextResponse.json({ success: true });
+    return { status: 200, body: { success: true } };
   } catch (error) {
-    if (session) {
-      await session.abortTransaction();
-      session.endSession();
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { orderId, action } = await request.json();
+
+    if (!orderId || !["VERIFY", "REJECT"].includes(action)) {
+      return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
     }
+
+    await dbConnect();
+
+    const MAX_RETRIES = 3;
+    let lastError: any;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const result = await runOrderAction(orderId, action);
+        return NextResponse.json(result.body, { status: result.status });
+      } catch (error: any) {
+        lastError = error;
+        const isTransient = error?.errorLabelSet?.has?.("TransientTransactionError") || error?.hasErrorLabel?.("TransientTransactionError");
+        if (!isTransient) break;
+        await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+      }
+    }
+
+    console.error("Order action error:", lastError);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  } catch (error) {
     console.error("Order action error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
