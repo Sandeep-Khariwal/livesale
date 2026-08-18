@@ -21,6 +21,16 @@ export default function DispatchPage() {
   const [loading, setLoading] = useState(true);
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, { courier: string; tracking: string }>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredOrders = orders.filter((order) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      order.orderNumber.toLowerCase().includes(q) ||
+      order.id.toLowerCase().includes(q)
+    );
+  });
 
   const load = async (v: 'pending' | 'dispatched') => {
     setLoading(true);
@@ -103,7 +113,7 @@ export default function DispatchPage() {
         .tabs {
           display: flex;
           gap: 0.4rem;
-          margin-bottom: 1.8rem;
+          margin-bottom: 1.4rem;
           border-bottom: 1px solid var(--hairline);
         }
 
@@ -123,6 +133,46 @@ export default function DispatchPage() {
         .tab-btn.active {
           color: var(--gold-bright);
           border-bottom-color: var(--gold);
+        }
+
+        .search-row {
+          margin-bottom: 1.6rem;
+        }
+
+        .search-input-wrap {
+          position: relative;
+          max-width: 360px;
+        }
+
+        .search-input-wrap svg {
+          position: absolute;
+          left: 0.85rem;
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+          opacity: 0.55;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 0.7rem 0.9rem 0.7rem 2.4rem;
+          border-radius: 0.6rem;
+          border: 1px solid var(--hairline);
+          background: var(--surface);
+          color: var(--cream);
+          font-size: 0.85rem;
+          font-family: 'Inter', sans-serif;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 0.15s ease;
+        }
+
+        .search-input:focus {
+          border-color: var(--gold);
+        }
+
+        .search-input::placeholder {
+          color: var(--muted);
         }
 
         .state-msg {
@@ -271,7 +321,7 @@ export default function DispatchPage() {
 
       <h1 className="page-title">Dispatch Orders</h1>
       <p className="page-sub">
-        Sirf payment VERIFIED + order CONFIRMED wale orders yaha dikhte hain. Address confirm karke hi dispatch karo.
+        Only orders with payment VERIFIED and order CONFIRMED appear here. Confirm the address before dispatching.
       </p>
 
       {/* Tabs */}
@@ -290,82 +340,109 @@ export default function DispatchPage() {
         </button>
       </div>
 
+      {/* Search */}
+      <div className="search-row">
+        <div className="search-input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="7" stroke="#f6ecd9" strokeWidth="2" />
+            <path d="M21 21L16.65 16.65" stroke="#f6ecd9" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search by order ID or order number"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <div className="state-msg">Loading...</div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <div className="state-msg">
-          {view === 'pending' ? 'Abhi koi order dispatch ke liye ready nahi hai.' : 'Abhi tak koi order dispatch nahi hua.'}
+          {searchQuery.trim()
+            ? 'No orders match your search.'
+            : view === 'pending'
+            ? 'No orders are ready for dispatch right now.'
+            : 'No orders have been dispatched yet.'}
         </div>
       ) : (
         <div className="order-list">
-          {orders.map((order) => (
-            <div key={order.id} className="order-card">
-              <div className="order-top">
-                <div>
-                  <div className="order-number">{order.orderNumber}</div>
-                  <div className="order-meta">
-                    {order.productCode} &middot; <span className="amount">₹{order.amount}</span>
-                  </div>
-                  <div className="order-customer">
-                    {order.customer?.name} &middot; {order.customer?.mobile}
-                  </div>
-                  {view === 'dispatched' && (
-                    <div className="dispatched-note">
-                      ✓ Dispatched {order.dispatchedAt ? new Date(order.dispatchedAt).toLocaleString() : ''}
-                      {order.courierName && ` via ${order.courierName}`}
-                      {order.trackingId && ` — Tracking: ${order.trackingId}`}
+          {filteredOrders.map((order) => {
+            const courierValue = trackingInputs[order.id]?.courier || '';
+            const trackingValue = trackingInputs[order.id]?.tracking || '';
+            const canDispatch = courierValue.trim().length > 0 && trackingValue.trim().length > 0;
+
+            return (
+              <div key={order.id} className="order-card">
+                <div className="order-top">
+                  <div>
+                    <div className="order-number">{order.orderNumber}</div>
+                    <div className="order-meta">
+                      {order.productCode} &middot; <span className="amount">₹{order.amount}</span>
                     </div>
-                  )}
+                    <div className="order-customer">
+                      {order.customer?.name} &middot; {order.customer?.mobile}
+                    </div>
+                    {view === 'dispatched' && (
+                      <div className="dispatched-note">
+                        ✓ Dispatched {order.dispatchedAt ? new Date(order.dispatchedAt).toLocaleString() : ''}
+                        {order.courierName && ` via ${order.courierName}`}
+                        {order.trackingId && ` — Tracking: ${order.trackingId}`}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="address-block">
+                    <div className="address-label">Shipping Address</div>
+                    {order.address ? (
+                      <div className="address-text">
+                        {order.address.address}, {order.address.city}, {order.address.state} -{' '}
+                        {order.address.pincode}
+                      </div>
+                    ) : (
+                      <div className="address-missing">
+                        ⚠ No address found — do not dispatch, contact customer first.
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="address-block">
-                  <div className="address-label">Shipping Address</div>
-                  {order.address ? (
-                    <div className="address-text">
-                      {order.address.address}, {order.address.city}, {order.address.state} -{' '}
-                      {order.address.pincode}
-                    </div>
-                  ) : (
-                    <div className="address-missing">
-                      ⚠ No address found — do not dispatch, contact customer first.
-                    </div>
-                  )}
-                </div>
+                {view === 'pending' && order.address && (
+                  <div className="dispatch-row">
+                    <input
+                      placeholder="Courier name"
+                      value={courierValue}
+                      onChange={(e) =>
+                        setTrackingInputs((prev) => ({
+                          ...prev,
+                          [order.id]: { ...prev[order.id], courier: e.target.value, tracking: prev[order.id]?.tracking || '' },
+                        }))
+                      }
+                    />
+                    <input
+                      placeholder="Tracking ID"
+                      value={trackingValue}
+                      onChange={(e) =>
+                        setTrackingInputs((prev) => ({
+                          ...prev,
+                          [order.id]: { ...prev[order.id], tracking: e.target.value, courier: prev[order.id]?.courier || '' },
+                        }))
+                      }
+                    />
+                    <button
+                      onClick={() => handleDispatch(order.id)}
+                      disabled={dispatchingId === order.id || !canDispatch}
+                      className="dispatch-btn"
+                    >
+                      {dispatchingId === order.id ? 'Dispatching...' : 'Mark Dispatched'}
+                    </button>
+                  </div>
+                )}
               </div>
-
-              {view === 'pending' && order.address && (
-                <div className="dispatch-row">
-                  <input
-                    placeholder="Courier name"
-                    value={trackingInputs[order.id]?.courier || ''}
-                    onChange={(e) =>
-                      setTrackingInputs((prev) => ({
-                        ...prev,
-                        [order.id]: { ...prev[order.id], courier: e.target.value, tracking: prev[order.id]?.tracking || '' },
-                      }))
-                    }
-                  />
-                  <input
-                    placeholder="Tracking ID"
-                    value={trackingInputs[order.id]?.tracking || ''}
-                    onChange={(e) =>
-                      setTrackingInputs((prev) => ({
-                        ...prev,
-                        [order.id]: { ...prev[order.id], tracking: e.target.value, courier: prev[order.id]?.courier || '' },
-                      }))
-                    }
-                  />
-                  <button
-                    onClick={() => handleDispatch(order.id)}
-                    disabled={dispatchingId === order.id}
-                    className="dispatch-btn"
-                  >
-                    {dispatchingId === order.id ? 'Dispatching...' : 'Mark Dispatched'}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

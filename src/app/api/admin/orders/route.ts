@@ -31,6 +31,7 @@ export async function GET() {
           address: addr?.address,
           city: addr?.city,
           state: addr?.state,
+            landmark: addr?.landmark,   //
           pincode: addr?.pincode,
         },
         product: o.productId,

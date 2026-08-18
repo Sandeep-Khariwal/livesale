@@ -66,6 +66,11 @@ export default function OrdersPage() {
     }
   };
 
+  const handleExport = () => {
+    const params = filter !== "ALL" ? `?status=${filter}` : "";
+    window.open(`/api/admin/orders/export${params}`, "_blank");
+  };
+
   const counts = useMemo(() => {
     const c = { PENDING: 0, VERIFIED: 0, REJECTED: 0, revenue: 0 };
     for (const o of orders as any[]) {
@@ -200,86 +205,134 @@ export default function OrdersPage() {
             {filter} <span className="chip-x">✕</span>
           </button>
         )}
+        <button className="btn btn-ghost" onClick={handleExport}>
+          ⬇ Download Excel{filter !== "ALL" ? ` (${filter})` : ""}
+        </button>
       </div>
 
       <div className="table-wrap">
         <table className="ord-table">
+          <colgroup>
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "15%" }} />
+          </colgroup>
           <thead>
             <tr>
               <th>Order</th>
               <th>Product</th>
               <th>Amount</th>
               <th>Customer</th>
-              <th>Delivery address</th>
+              <th>Address</th>
               <th>Payment</th>
-              <th>Order status</th>
-              <th aria-label="Actions" />
+              <th>Status</th>
+              <th className="docs-cell">Docs</th>
+              <th className="actions-cell">Action</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="empty-row">
+                <td colSpan={9} className="empty-row">
                   {orders.length === 0 ? "No orders yet." : "No orders match your search."}
                 </td>
               </tr>
             ) : (
-              filtered.map((order: any) => (
-                <tr key={order._id} className={order.paymentStatus === "PENDING" ? "row-pending" : ""}>
-                  <td className="mono-cell">{order.orderNumber}</td>
-                  <td className="code-cell">{order.product?.productCode || "Unknown"}</td>
-                  <td className="amount-cell">₹{Number(order.amount).toLocaleString("en-IN")}</td>
-                  <td>
-                    <button className="customer-chip" onClick={() => setSelectedCustomer(order.customer)}>
-                      <span className="avatar">{initials(order.customer?.name)}</span>
-                      <span>
-                        <span className="customer-name">{order.customer?.name || "Unnamed"}</span>
-                        <span className="customer-mobile">{order.customer?.mobile}</span>
+              filtered.map((order: any) => {
+                const fullAddress = order.customer?.address
+                  ? `${order.customer.address}${order.customer.landmark ? " (Near " + order.customer.landmark + ")" : ""}${order.customer.city ? ", " + order.customer.city : ""}${
+                      order.customer.pincode ? " – " + order.customer.pincode : ""
+                    }`
+                  : "—";
+
+                return (
+                  <tr key={order._id} className={order.paymentStatus === "PENDING" ? "row-pending" : ""}>
+                    <td className="mono-cell" title={order.orderNumber}>
+                      {order.orderNumber}
+                    </td>
+                    <td className="code-cell">{order.product?.productCode || "Unknown"}</td>
+                    <td className="amount-cell">₹{Number(order.amount).toLocaleString("en-IN")}</td>
+                    <td>
+                      <button
+                        className="customer-chip"
+                        title="Click to view full customer details"
+                        onClick={() => setSelectedCustomer(order.customer)}
+                      >
+                        <span className="avatar">{initials(order.customer?.name)}</span>
+                        <span className="customer-text">
+                          <span className="customer-name">{order.customer?.name || "Unnamed"}</span>
+                          <span className="customer-mobile">{order.customer?.mobile}</span>
+                          <span className="customer-hint">View details ›</span>
+                        </span>
+                      </button>
+                    </td>
+                    <td className="address-cell" title={fullAddress}>
+                      {fullAddress}
+                    </td>
+                    <td>
+                      <span className={`status-badge status-${order.paymentStatus?.toLowerCase()}`}>
+                        <span className="status-dot" />
+                        {order.paymentStatus}
                       </span>
-                    </button>
-                  </td>
-                  <td className="address-cell">
-                    {order.customer?.address
-                      ? `${order.customer.address}${order.customer.city ? ", " + order.customer.city : ""}${
-                          order.customer.pincode ? " – " + order.customer.pincode : ""
-                        }`
-                      : "—"}
-                  </td>
-                  <td>
-                    <span className={`status-badge status-${order.paymentStatus?.toLowerCase()}`}>
-                      <span className="status-dot" />
-                      {order.paymentStatus}
-                    </span>
-                  </td>
-                  <td className="muted-cell">{order.orderStatus}</td>
-                  <td className="actions-cell">
-                    {order.paymentStatus === "PENDING" && (
-                      <div className="action-btns">
+                    </td>
+                    <td className="muted-cell">{order.orderStatus}</td>
+
+                    {/* Documents: compact icon-only buttons, side by side, sticky */}
+                    <td className="docs-cell">
+                      <div className="doc-btns">
                         <button
-                          className="btn btn-view"
+                          className="btn-icon"
+                          title="Customer's payment screenshot"
                           onClick={() => window.open(`/api/admin/orders/screenshot?orderId=${order._id}`, "_blank")}
                         >
-                          View proof
+                          <span className="btn-icon-glyph">🧾</span>
+                          <span className="btn-icon-label">Proof</span>
                         </button>
                         <button
-                          className="btn btn-verify"
-                          disabled={actioningId === order._id}
-                          onClick={() => handleAction(order._id, "VERIFY")}
+                          className="btn-icon"
+                          title="Customer's uploaded photo — used as a color reference for the order"
+                          onClick={() => window.open(`/api/admin/orders/reference-photo?orderId=${order._id}`, "_blank")}
                         >
-                          {actioningId === order._id ? <span className="btn-spinner" /> : "Verify"}
-                        </button>
-                        <button
-                          className="btn btn-reject"
-                          disabled={actioningId === order._id}
-                          onClick={() => handleAction(order._id, "REJECT")}
-                        >
-                          Reject
+                          <span className="btn-icon-glyph">🎨</span>
+                          <span className="btn-icon-label">Ref</span>
                         </button>
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))
+                    </td>
+
+                    {/* Actions: only Verify / Reject, only when pending, sticky */}
+                    <td className="actions-cell">
+                      {order.paymentStatus === "PENDING" ? (
+                        <div className="action-btns">
+                          <button
+                            className="btn btn-verify"
+                            disabled={actioningId === order._id}
+                            onClick={() => handleAction(order._id, "VERIFY")}
+                          >
+                            {actioningId === order._id ? <span className="btn-spinner" /> : "Verify"}
+                          </button>
+                          <button
+                            className="btn btn-reject"
+                            disabled={actioningId === order._id}
+                            onClick={() => handleAction(order._id, "REJECT")}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span className={`no-action no-action-${order.paymentStatus?.toLowerCase()}`}>
+                          {order.paymentStatus === "VERIFIED" ? "✓ Verified" : order.paymentStatus === "REJECTED" ? "✕ Rejected" : "—"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -304,6 +357,12 @@ export default function OrdersPage() {
               )}
               <dt>Address</dt>
               <dd>{selectedCustomer.address || "N/A"}</dd>
+              {selectedCustomer.landmark && (
+                <>
+                  <dt>Landmark</dt>
+                  <dd>{selectedCustomer.landmark}</dd>
+                </>
+              )}
               {selectedCustomer.city && (
                 <>
                   <dt>City</dt>
@@ -350,7 +409,7 @@ const baseStyles = `
     --danger: #ff6b6b;
     font-family: var(--font-jost), -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--cream);
-    max-width: 1240px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
   }
@@ -486,14 +545,21 @@ const baseStyles = `
     opacity: 0.7;
   }
 
+  /* Table fits the container on comfortable widths; below its min-width
+     (mobile) it scrolls horizontally instead of squishing columns into
+     each other, which is what was causing the Proof/Ref overlap. */
   .table-wrap {
     overflow-x: auto;
+    overflow-y: visible;
     border-radius: 0.85rem;
     border: 1px solid var(--hairline);
+    width: 100%;
   }
 
   .ord-table {
     width: 100%;
+    min-width: 920px;
+    table-layout: fixed;
     border-collapse: collapse;
     text-align: left;
     background: var(--surface);
@@ -504,22 +570,28 @@ const baseStyles = `
   }
 
   .ord-table th {
-    padding: 0.85rem 1rem;
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    padding: 0.65rem 0.6rem;
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
     font-weight: 700;
     white-space: nowrap;
     border-bottom: 1px solid var(--hairline);
+    background: var(--surface-alt);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .ord-table td {
-    padding: 0.85rem 1rem;
+    padding: 0.6rem;
     border-bottom: 1px solid var(--hairline);
-    font-size: 0.86rem;
+    font-size: 0.8rem;
     vertical-align: top;
-    padding-top: 1rem;
+    overflow: hidden;
   }
 
   .ord-table tr:last-child td {
@@ -532,21 +604,35 @@ const baseStyles = `
   .ord-table tbody tr:hover {
     background: rgba(212, 175, 90, 0.035);
   }
+  .ord-table tbody tr:hover .docs-cell,
+  .ord-table tbody tr:hover .actions-cell {
+    background: #1f0d12;
+  }
 
   .row-pending {
     box-shadow: inset 3px 0 0 var(--pending);
+  }
+  .row-pending .docs-cell,
+  .row-pending .actions-cell {
+    background: var(--surface);
   }
 
   .mono-cell {
     font-weight: 600;
     font-family: "SF Mono", "Courier New", monospace;
     color: var(--gold-bright);
-    font-size: 0.8rem;
+    font-size: 0.72rem;
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.35;
   }
 
   .code-cell {
     font-weight: 600;
     color: var(--cream);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .amount-cell {
@@ -558,7 +644,7 @@ const baseStyles = `
   .customer-chip {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
     background: none;
     border: none;
     cursor: pointer;
@@ -566,11 +652,18 @@ const baseStyles = `
     text-align: left;
     font-family: inherit;
     color: inherit;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .customer-text {
+    min-width: 0;
+    overflow: hidden;
   }
 
   .avatar {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     flex-shrink: 0;
     display: flex;
@@ -578,7 +671,7 @@ const baseStyles = `
     justify-content: center;
     background: linear-gradient(135deg, #f3d68f, #d4af5a);
     color: #2c0810;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 700;
   }
   .avatar-lg {
@@ -591,6 +684,9 @@ const baseStyles = `
     display: block;
     color: var(--cream);
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .customer-chip:hover .customer-name {
     color: var(--gold-bright);
@@ -598,19 +694,43 @@ const baseStyles = `
 
   .customer-mobile {
     display: block;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .customer-hint {
+    display: block;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--gold);
+    opacity: 0.75;
+    white-space: nowrap;
+    margin-top: 0.1rem;
+  }
+  .customer-chip:hover .customer-hint {
+    color: var(--gold-bright);
+    opacity: 1;
   }
 
   .address-cell {
-    max-width: 220px;
-    font-size: 0.8rem;
+    font-size: 0.76rem;
     color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: help;
   }
 
   .muted-cell {
     color: var(--muted);
-    font-size: 0.8rem;
+    font-size: 0.76rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .empty-row {
@@ -622,18 +742,19 @@ const baseStyles = `
   .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.32rem 0.65rem;
+    gap: 0.35rem;
+    padding: 0.28rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     white-space: nowrap;
   }
   .status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
+    flex-shrink: 0;
   }
   .status-pending {
     background: rgba(232, 163, 61, 0.12);
@@ -651,15 +772,100 @@ const baseStyles = `
   }
   .status-rejected .status-dot { background: var(--danger); }
 
+  /* Documents column: icon-only buttons side by side — much narrower than
+     before, so it no longer eats into the address/payment columns. */
+  .ord-table td.docs-cell,
+  .ord-table td.actions-cell {
+    overflow: visible;
+  }
+  .docs-cell {
+    position: sticky;
+    right: 120px;
+    background: var(--surface);
+    z-index: 2;
+    box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.45);
+  }
+  thead .docs-cell {
+    background: var(--surface-alt);
+    z-index: 5;
+    box-shadow: none;
+  }
+  .doc-btns {
+    display: flex;
+    flex-direction: row;
+    gap: 0.35rem;
+  }
+  .btn-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    width: 46px;
+    padding: 0.32rem 0.2rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-icon:hover {
+    border-color: var(--gold);
+    background: rgba(212, 175, 90, 0.08);
+  }
+  .btn-icon-glyph {
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+  .btn-icon-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .btn-icon:hover .btn-icon-label {
+    color: var(--gold-bright);
+  }
+
+  /* Actions column: Verify / Reject only, STICKY to the right edge */
   .actions-cell {
-    min-width: 108px;
+    position: sticky;
+    right: 0;
+    background: var(--surface);
+    z-index: 2;
+  }
+  thead .actions-cell {
+    background: var(--surface-alt);
+    z-index: 5;
+    text-align: center;
   }
 
   .action-btns {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.3rem;
     width: 100%;
+  }
+
+  .no-action {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.4rem;
+  }
+  .no-action-verified {
+    color: var(--success);
+    background: rgba(111, 207, 151, 0.1);
+  }
+  .no-action-rejected {
+    color: var(--danger);
+    background: rgba(255, 107, 107, 0.1);
   }
 
   .btn-spinner {
@@ -676,10 +882,10 @@ const baseStyles = `
   }
 
   .btn {
-    padding: 0.4rem 0.7rem;
+    padding: 0.35rem 0.5rem;
     border-radius: 0.4rem;
     cursor: pointer;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 600;
     border: none;
     font-family: inherit;
@@ -694,16 +900,6 @@ const baseStyles = `
   }
   .btn:not(:disabled):hover {
     filter: brightness(1.1);
-  }
-
-  .btn-view {
-    border: 1px solid var(--hairline);
-    background: transparent;
-    color: var(--cream);
-  }
-  .btn-view:hover {
-    border-color: var(--gold);
-    color: var(--gold-bright);
   }
 
   .btn-verify {
