@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "src/app/api/orders/razorpay/verify/route.ts"  ],
   "exclude": ["node_modules"]
 }

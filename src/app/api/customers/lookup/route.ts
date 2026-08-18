@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
             address: address.address,
             city: address.city,
             state: address.state,
+           landmark: address.landmark || "",   // NEW
+
             pincode: address.pincode,
           }
         : null,

@@ -22,7 +22,7 @@ export interface IOrder extends Document {
   dispatchedById?: mongoose.Types.ObjectId;
   courierName?: string;
   trackingId?: string;
-
+ referenceImageKey?: string; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,8 +58,10 @@ const OrderSchema = new Schema<IOrder>(
     dispatchedById: { type: Schema.Types.ObjectId, ref: 'AdminUser' },
     courierName: { type: String },
     trackingId: { type: String },
+    referenceImageKey: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
+    
 );
 
 OrderSchema.index({ paymentStatus: 1, orderStatus: 1 });
