@@ -30,8 +30,6 @@ export async function GET(request: NextRequest) {
 async function returnProductStatus(product: any) {
   // NEW: generate signed image URL if imageKey exists
   const imageUrl = product.imageKey
-    ? await getSignedS3Url(product.imageKey, 3600)
-    : null;
 
   if (product.status !== "AVAILABLE" || product.availableStock <= 0) {
     return NextResponse.json({

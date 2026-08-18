@@ -10,22 +10,6 @@ import { Payment } from "@/models/Payment";
 
 export const runtime = "nodejs";
 
-/*
- * IMPORTANT — ye route ab "verify" ke expectations ke saath match karta hai:
- *
- * 1. Product check karo + stock reserve karo (availableStock -1, reservedStock +1)
- * 2. Customer upsert karo
- * 3. Order banao with paymentStatus: "PENDING"
- * 4. ShippingAddress banao
- * 5. Payment banao with status: "PENDING", gatewayProvider: "razorpay"
- * 6. Sab kuch commit hone ke baad Razorpay order create karo
- * 7. Payment.gatewayPayload mein razorpayOrderId save karo
- *
- * NOTE: referencePhoto upload yahan nahi hai — agar chahiye toh yahin
- * form-data se accept karke S3 pe upload karo aur Order.referenceImageKey
- * mein save karo. Field names (Order/Customer/ShippingAddress) apne actual
- * schema ke against verify kar lena, maine ye purane commented code se liye hain.
- */
 
 interface CustomerDetailsInput {
   name?: string;
@@ -241,7 +225,7 @@ orderStatus: "PENDING_PAYMENT_VERIFICATION",
       razorpayOrderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
-      keyId: process.env.RAZORPAY_KEY_ID,
+      keyId: process.env.RAZORPAY_API_KEY_Live,
       orderNumber: order.orderNumber,
     });
   } catch (error) {

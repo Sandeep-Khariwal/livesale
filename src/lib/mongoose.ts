@@ -1,6 +1,18 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv"
+dotenv.config()
+
+import dns from "dns";
+
+// Set Google's DNS servers
+dns.setServers([
+  "8.8.8.8",
+  "8.8.4.4",
+]);
 
 const MONGODB_URI = process.env.DB_URL_LS;
+
+console.log("MONGODB_URI : ",MONGODB_URI);
 
 if (!MONGODB_URI) {
   throw new Error(

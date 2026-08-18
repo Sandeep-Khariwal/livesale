@@ -41,6 +41,9 @@ export default function Home() {
       const res = await fetch(`/api/products/check?code=${encodeURIComponent(code)}`);
       const data = await res.json();
 
+      console.log("data : ",data);
+      
+
       if (res.ok) {
         setProduct(data.product);
         setStatus(data.available ? "AVAILABLE" : "SOLD_OUT");
