@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
           "WhatsApp": customer?.whatsapp || "",
           "Address": address?.address || "",
           "City": address?.city || "",
+          "landmark":address?.landmark || "",
           "State": address?.state || "",
           "Pincode": address?.pincode || "",
           "Payment Status": order.paymentStatus,

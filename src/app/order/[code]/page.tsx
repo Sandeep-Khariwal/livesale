@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, use, useRef } from "react";
@@ -147,7 +146,7 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
         setPhase("new");
       }
     } catch {
-      setError("Kuch gadbad ho gayi. Dobara try karein.");
+      setError("Something went wrong. Please try again ");
     } finally {
       setLoading(false);
     }
@@ -235,9 +234,13 @@ const handleChangeAddress = () => {
     if (!isValidAddress(formData.address)) {
       errors.address = "Address looks too short. Please enter your full address.";
     }
+
     if (!isValidPlaceName(formData.city)) {
       errors.city = "Enter a valid city name (letters only).";
     }
+    if (!formData.landmark.trim()) {
+  errors.landmark = "Please enter a landmark.";
+}
     if (!isValidPlaceName(formData.state)) {
       errors.state = "Enter a valid state name (letters only).";
     }
@@ -780,7 +783,7 @@ const handleChangeAddress = () => {
                   <p style={{ margin: 0, color: "#f6ecd9", fontWeight: 600, fontSize: "0.95rem" }}>
                     Tap to choose photo
                   </p>
-                  <p style={{ margin: 0, color: "#a8927b", fontSize: "0.78rem" }}>PNG or JPG · LIVE se liya gaya reference</p>
+                  <p style={{ margin: 0, color: "#a8927b", fontSize: "0.78rem" }}>PNG or JPG · Reference taken from LIVE</p>
                 </>
               )}
               <input
@@ -966,7 +969,7 @@ const handleChangeAddress = () => {
 
               {/* new */}
               <div style={{ gridColumn: "1 / -1" }}>
-  <label htmlFor="landmark" style={labelStyle}>Landmark (optional)</label>
+  <label htmlFor="landmark" style={labelStyle}>Landmark</label>
   <input
     id="landmark"
     type="text"

@@ -1,19 +1,12 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
-import { v4 as uuidv4 } from "uuid";
-import path from "path";
+import { S3, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const region = process.env.REGION || "ap-south-1";
+const region = process.env.AWS_REGION || "ap-south-1";
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID!;
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY!;
 const bucket = process.env.CONTENT_IMAGES_BUCKET!;
 
-if (!accessKeyId || !secretAccessKey || !bucket) {
-  throw new Error("❌ Missing AWS environment variables");
-}
-
-const s3Client = new S3Client({
+const s3Client = new S3({
   region,
   credentials: {
     accessKeyId,
@@ -22,53 +15,31 @@ const s3Client = new S3Client({
 });
 
 /**
- * Uploads an image buffer to S3 and returns the public S3 URL.
- *
- * The returned key will be:
- * images/<uuid>.<extension>
- */export async function uploadToS3(
+ * Uploads a file to S3 and returns the object key.
+ */
+export async function uploadToS3(
   fileBuffer: Buffer,
   fileName: string,
   contentType: string
 ): Promise<string> {
-  try {
-    const extension = path.extname(fileName);
-    const finalFileName = `images/${uuidv4()}${extension}`;
+  await s3Client.putObject({
+    Bucket: bucket,
+    Key: fileName,
+    Body: fileBuffer,
+    ContentType: contentType,
+  });
 
-    const upload = new Upload({
-      client: s3Client,
-
-      params: {
-        Bucket: bucket,
-        Key: finalFileName,
-        Body: fileBuffer,
-        ContentType: contentType,
-        CacheControl: "max-age=31536000",
-      },
-
-      queueSize: 4,
-      partSize: 5 * 1024 * 1024,
-      leavePartsOnError: false,
-    });
-
-    const result = await upload.done();
-
-    return result.Location!
-  } catch (error) {
-    console.error("❌ S3 upload error:", error);
-    throw error;
-  }
+  return fileName;
 }
-export async function getSignedS3Url(
-  key: string,
-  expiresIn = 3600
-): Promise<string> {
+
+/**
+ * Generates a signed URL to view a private S3 object securely.
+ */
+export async function getSignedS3Url(key: string, expiresIn = 3600): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: bucket,
     Key: key,
   });
-
-  return getSignedUrl(s3Client, command, {
-    expiresIn,
-  });
+  
+  return getSignedUrl(s3Client, command, { expiresIn });
 }
