@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
 
     if (!screenshotFile) {
       return NextResponse.json(
-        { error: "Payment screenshot zaroori hai." },
+        { error: "Payment screenshot is required." },
         { status: 400 }
       );
     }
@@ -335,14 +335,14 @@ export async function POST(request: NextRequest) {
 
     if (!name || !mobile) {
       return NextResponse.json(
-        { error: "Customer name aur mobile number zaroori hai." },
+{ error: "Customer name and mobile number are required." },
         { status: 400 }
       );
     }
 
     if (!/^[6-9]\d{9}$/.test(mobile)) {
       return NextResponse.json(
-        { error: "Valid 10-digit mobile number bharein." },
+{ error: "Please enter a valid 10-digit mobile number." },
         { status: 400 }
       );
     }
@@ -353,16 +353,16 @@ export async function POST(request: NextRequest) {
     const state = customerDetails.state?.trim();
     const pincode = customerDetails.pincode?.trim();
 
-    if (!address || !city || !state || !pincode) {
+    if (!address || !city || !state || !pincode || !landmark) {
       return NextResponse.json(
-        { error: "Poora shipping address (address, city, state, pincode) bharein." },
-        { status: 400 }
+{ error: "Please enter the complete shipping address (address, city, landmark, state, and pincode)." },  
+      { status: 400 }
       );
     }
 
     if (!/^\d{6}$/.test(pincode)) {
       return NextResponse.json(
-        { error: "Valid 6-digit pincode bharein." },
+{ error: "Please enter a valid 6-digit pincode." },
         { status: 400 }
       );
     }
@@ -380,7 +380,7 @@ export async function POST(request: NextRequest) {
       session.endSession();
       session = null;
       return NextResponse.json(
-        { error: "Sorry, ye product abhi available nahi hai." },
+{ error: "Sorry, this product is currently unavailable." },
         { status: 400 }
       );
     }
@@ -401,7 +401,8 @@ export async function POST(request: NextRequest) {
       session.endSession();
       session = null;
       return NextResponse.json(
-        { error: "Sorry, ye product abhi-abhi sold out ho gaya." },
+{ error: "Sorry, this product has just sold out." },      
+
         { status: 400 }
       );
     }
@@ -442,7 +443,7 @@ export async function POST(request: NextRequest) {
       city,
       state,
       pincode,
-      landmark: landmark || undefined,
+      landmark
     });
     await shippingAddress.save({ session });
 

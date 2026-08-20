@@ -17,6 +17,8 @@ interface CustomerDetailsInput {
   whatsapp?: string;
   address?: string;
   city?: string;
+  landmark?: string;
+
   state?: string;
   pincode?: string;
 }
@@ -59,17 +61,18 @@ export async function POST(request: NextRequest) {
     // isliye transaction shuru karne se pehle hi validate kar lo —
     // warna stock reserve hoke phir rollback hoga aur customer ko
     // generic 500 error milega.
-    const address = customerDetails.address?.trim();
-    const city = customerDetails.city?.trim();
-    const state = customerDetails.state?.trim();
-    const pincode = customerDetails.pincode?.trim();
+ const address = customerDetails.address?.trim();
+const city = customerDetails.city?.trim();
+const landmark = customerDetails.landmark?.trim();
+const state = customerDetails.state?.trim();
+const pincode = customerDetails.pincode?.trim();
 
-    if (!address || !city || !state || !pincode) {
-      return NextResponse.json(
-        { error: "Poora shipping address (address, city, state, pincode) bharein." },
-        { status: 400 }
-      );
-    }
+if (!address || !city || !state || !pincode || !landmark) {
+  return NextResponse.json(
+    { error: "Please fill in the complete shipping address (address, landmark, city, state, pincode)." },
+    { status: 400 }
+  );
+}
 
     if (!/^\d{6}$/.test(pincode)) {
       return NextResponse.json(
@@ -155,6 +158,7 @@ orderStatus: "PENDING_PAYMENT_VERIFICATION",
       orderId: order._id,
       address,
       city,
+      landmark,
       state,
       pincode,
     });
