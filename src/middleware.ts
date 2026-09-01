@@ -20,6 +20,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // DEMO MODE BYPASS
+    console.log("DEMO_MODE value:", JSON.stringify(process.env.DEMO_MODE));
+
   if (process.env.DEMO_MODE === 'true') {
     const response = NextResponse.next();
     response.headers.set('x-admin-id', 'demo-admin-id');

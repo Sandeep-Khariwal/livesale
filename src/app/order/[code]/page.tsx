@@ -795,7 +795,7 @@ const handleChangeAddress = () => {
               />
             </label>
 
-          <button
+          {/* <button
   type="button"
   onClick={() => setStep(2)}
   disabled={!referencePhoto}
@@ -806,7 +806,12 @@ const handleChangeAddress = () => {
   }}
 >
   {referencePhoto ? "Continue" : "Upload photo to continue"}
+</button> */}
+
+<button type="button" onClick={() => setStep(2)} style={goldPrimaryBtn}>
+  {referencePhoto ? "Continue" : "Continue without photo"}
 </button>
+{/* bns */}
           </div>
         )}
 
