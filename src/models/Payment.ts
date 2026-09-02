@@ -4,8 +4,8 @@ export interface IPayment extends Document {
   orderId: mongoose.Types.ObjectId;
   amount: number;
   method: 'MANUAL_UPI' | 'GATEWAY';
-  status: 'PENDING' | 'VERIFIED' | 'REJECTED';
-  screenshotKey?: string;
+status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'CANCELLED';
+screenshotKey?: string;
   verifiedAt?: Date;
   verifiedById?: mongoose.Types.ObjectId;
   rejectionReason?: string;
@@ -27,7 +27,7 @@ const PaymentSchema = new Schema<IPayment>(
     },
     status: {
       type: String,
-      enum: ['PENDING', 'VERIFIED', 'REJECTED'],
+      enum: ['PENDING', 'VERIFIED', 'REJECTED', 'CANCELLED'  ],
       default: 'PENDING',
     },
     screenshotKey: { type: String },

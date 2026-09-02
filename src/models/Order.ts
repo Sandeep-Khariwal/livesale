@@ -7,7 +7,8 @@ export interface IOrder extends Document {
   customerId: mongoose.Types.ObjectId;
   amount: number;
   priceSnapshot: number;
-  paymentStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+paymentStatus: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'CANCELLED';
+
   orderStatus:
     | 'PENDING_PAYMENT_VERIFICATION'
     | 'CONFIRMED'
@@ -38,7 +39,7 @@ const OrderSchema = new Schema<IOrder>(
     priceSnapshot: { type: Number, required: true },
     paymentStatus: {
       type: String,
-      enum: ['PENDING', 'VERIFIED', 'REJECTED'],
+     enum: ['PENDING', 'VERIFIED', 'REJECTED', 'CANCELLED'],
       default: 'PENDING',
     },
     orderStatus: {
