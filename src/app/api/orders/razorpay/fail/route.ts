@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const razorpayOrderId = String(body.razorpayOrderId || "").trim();
+    const reason = String(body.reason || "Payment declined by bank/gateway").trim();
 
     if (!razorpayOrderId) {
       return NextResponse.json({ error: "razorpayOrderId is required" }, { status: 400 });
@@ -27,7 +28,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!pendingPayment) {
-      // Already verified, already cancelled, or never existed — nothing to do
       return NextResponse.json({ success: true });
     }
 
@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
 
     const quantity = order.quantity || 1;
 
-    // Release reserved stock back to available
     await Product.updateOne(
       { _id: order.productId },
       {
@@ -62,29 +61,30 @@ export async function POST(request: NextRequest) {
       { session }
     );
 
-order.orderStatus = "CANCELLED";
-order.paymentStatus = "CANCELLED";
+    // REJECTED — this is a real decline from the bank/gateway
+    order.orderStatus = "CANCELLED";
+    order.paymentStatus = "REJECTED";
     await order.save({ session });
 
-payment.status = "CANCELLED";
-payment.rejectionReason = "Customer closed the payment popup without completing payment";
+    payment.status = "REJECTED";
+    payment.rejectionReason = reason;
     await payment.save({ session });
 
     await session.commitTransaction();
     session.endSession();
     session = null;
 
-    console.log("Razorpay payment cancelled, stock released:", order.orderNumber);
+    console.log("Razorpay payment actually failed, stock released:", order.orderNumber);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Razorpay cancel error:", error);
+    console.error("Razorpay fail-handler error:", error);
     if (session) {
       try {
         await session.abortTransaction();
       } catch {}
       session.endSession();
     }
-    return NextResponse.json({ error: "Failed to cancel order" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to mark payment failed" }, { status: 500 });
   }
 }

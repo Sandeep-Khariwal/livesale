@@ -1325,7 +1325,7 @@ export default function OrderPage({
                 gap: "1rem",
               }}
             >
-              <div style={payMethodLabelStyle}>
+              {/* <div style={payMethodLabelStyle}>
                 <span style={stepBadgeStyle}>1</span>
                 Pay using any UPI app
               </div>
@@ -1369,7 +1369,12 @@ export default function OrderPage({
                 }}
               >
                 Opens your UPI app — Google Pay, PhonePe, Paytm or BHIM
-              </p>
+              </p> */}
+
+                            <div style={payMethodLabelStyle}>
+                <span style={stepBadgeStyle}>1</span>
+                Pay via UPI
+              </div>
 
               {qrCodeImageUrl && (
                 <>
@@ -1396,12 +1401,13 @@ export default function OrderPage({
                 </>
               )}
 
-              <div style={orDividerStyle}>
+                        <div style={orDividerStyle}>
                 <span style={orLineStyle} />
-                OR PAY MANUALLY
+                PAY USING UPI ID
                 <span style={orLineStyle} />
               </div>
 
+              
               <div
                 style={{
                   display: "flex",
