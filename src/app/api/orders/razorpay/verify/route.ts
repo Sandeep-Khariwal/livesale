@@ -248,11 +248,11 @@ export async function POST(request: NextRequest) {
     const stockResult = await Product.updateOne(
       {
         _id: product._id,
-        reservedStock: { $gte: 1 },
+        reservedStock: { $gte: order.quantity },
       },
       {
         $inc: {
-          reservedStock: -1,
+          reservedStock: -order.quantity,
         },
       },
       { session }
@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
     const stockTx = new StockTransaction({
       productId: product._id,
       type: "SALE",
-      quantity: -1,
+      quantity: -order.quantity,
       orderId: order._id,
       reason: "Online payment via Razorpay — auto-confirmed",
     });

@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const productCode = String(body.productCode || "").trim();
     const customerDetails: CustomerDetailsInput = body.customerDetails || {};
+    const quantity = Number(body.quantity) || 1;
 
     if (!productCode) {
       return NextResponse.json(
@@ -89,23 +90,22 @@ if (!address || !city || !state || !pincode || !landmark) {
       productCode: productCode.toUpperCase(),
     }).session(session);
 
-    if (!product || product.status !== "AVAILABLE" || product.availableStock <= 0) {
+    if (!product || product.status !== "AVAILABLE" || product.availableStock < quantity) {
       await session.abortTransaction();
       session.endSession();
       session = null;
-
       return NextResponse.json(
-        { error: "Sorry, ye product abhi available nahi hai." },
+        { error: "Sorry, this product does not have enough stock available." },
         { status: 400 }
       );
     }
 
     const stockUpdate = await Product.updateOne(
-      { _id: product._id, availableStock: { $gte: 1 } },
+      { _id: product._id, availableStock: { $gte: quantity } },
       {
-        $inc: { availableStock: -1, reservedStock: 1 },
+        $inc: { availableStock: -quantity, reservedStock: quantity },
         $set: {
-          status: product.availableStock === 1 ? "SOLD_OUT" : "AVAILABLE",
+          status: product.availableStock === quantity ? "SOLD_OUT" : "AVAILABLE",
         },
       },
       { session }
@@ -144,10 +144,11 @@ if (!address || !city || !state || !pincode || !landmark) {
       productId: product._id,
       productCodeSnapshot: product.productCode,
       customerId: customer._id,
-      amount: product.price,
+      amount: product.price * quantity,
       priceSnapshot: product.price,
+      quantity,
       paymentStatus: "PENDING",
-orderStatus: "PENDING_PAYMENT_VERIFICATION",      
+      orderStatus: "PENDING_PAYMENT_VERIFICATION",      
       reservationExpiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min hold
     });
     await order.save({ session });
@@ -169,7 +170,7 @@ orderStatus: "PENDING_PAYMENT_VERIFICATION",
     // ke bahar, kyunki Razorpay ek external API call hai).
     const payment = new Payment({
       orderId: order._id,
-      amount: product.price,
+      amount: product.price * quantity,
       method: "GATEWAY",
       status: "PENDING",
       gatewayProvider: "razorpay",
@@ -186,7 +187,7 @@ orderStatus: "PENDING_PAYMENT_VERIFICATION",
     let razorpayOrder;
     try {
       razorpayOrder = await razorpay.orders.create({
-        amount: Math.round(product.price * 100), // paise mein
+        amount: Math.round(product.price * quantity * 100), // paise mein
         currency: "INR",
         receipt: order.orderNumber,
         notes: {
@@ -202,7 +203,7 @@ orderStatus: "PENDING_PAYMENT_VERIFICATION",
       await Product.updateOne(
         { _id: product._id },
         {
-          $inc: { availableStock: 1, reservedStock: -1 },
+          $inc: { availableStock: quantity, reservedStock: -quantity },
           $set: { status: "AVAILABLE" },
         }
       );

@@ -3,6 +3,8 @@ import dbConnect from "@/lib/mongoose";
 import { Product } from "@/models/Product";
 import { getSignedS3Url } from "@/lib/s3";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();

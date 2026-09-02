@@ -32,7 +32,7 @@ async function runOrderAction(orderId: string, action: "VERIFY" | "REJECT") {
     if (action === "VERIFY") {
       await Product.updateOne(
         { _id: order.productId },
-        { $inc: { reservedStock: -1 } },
+        { $inc: { reservedStock: -order.quantity } },
         { session }
       );
 
@@ -45,15 +45,15 @@ async function runOrderAction(orderId: string, action: "VERIFY" | "REJECT") {
     } else if (action === "REJECT") {
       const product = await Product.findById(order.productId).session(session);
       if (product) {
-        product.reservedStock = Math.max(0, product.reservedStock - 1);
-        product.availableStock += 1;
+        product.reservedStock = Math.max(0, product.reservedStock - order.quantity);
+        product.availableStock += order.quantity;
         product.status = "AVAILABLE";
         await product.save({ session });
 
         const stockTx = new StockTransaction({
           productId: product._id,
           type: "RESERVATION_RELEASE",
-          quantity: 1,
+          quantity: order.quantity,
           orderId: order._id,
           reason: "Payment Rejected - Order Cancelled",
         });

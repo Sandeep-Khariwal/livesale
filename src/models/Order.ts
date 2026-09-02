@@ -22,7 +22,8 @@ export interface IOrder extends Document {
   dispatchedById?: mongoose.Types.ObjectId;
   courierName?: string;
   trackingId?: string;
- referenceImageKey?: string; 
+  referenceImageKey?: string; 
+  quantity: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +60,7 @@ const OrderSchema = new Schema<IOrder>(
     courierName: { type: String },
     trackingId: { type: String },
     referenceImageKey: { type: String },
+    quantity: { type: Number, default: 1 },
   },
   { timestamps: true },
     

@@ -75,11 +75,11 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Stock release: reservedStock -1, availableStock +1
+        // Stock release: reservedStock -quantity, availableStock +quantity
         const stockUpdate = await Product.updateOne(
-          { _id: order.productId, reservedStock: { $gte: 1 } },
+          { _id: order.productId, reservedStock: { $gte: order.quantity } },
           {
-            $inc: { availableStock: 1, reservedStock: -1 },
+            $inc: { availableStock: order.quantity, reservedStock: -order.quantity },
             $set: { status: "AVAILABLE" },
           }
         );

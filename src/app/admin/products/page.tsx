@@ -4,6 +4,7 @@ import ProductsClient from "./ProductsClient";
 import { getSignedS3Url } from "@/lib/s3";
 
 export const metadata = { title: "Products | OMS Admin" };
+export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
   await dbConnect();

@@ -316,6 +316,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const quantity = Number(formData.get("quantity")) || 1;
+
     if (!productCode) {
       return NextResponse.json(
         { error: "Product code is required" },
@@ -375,22 +377,22 @@ export async function POST(request: NextRequest) {
       productCode: productCode.toUpperCase(),
     }).session(session);
 
-    if (!product || product.status !== "AVAILABLE" || product.availableStock <= 0) {
+    if (!product || product.status !== "AVAILABLE" || product.availableStock < quantity) {
       await session.abortTransaction();
       session.endSession();
       session = null;
       return NextResponse.json(
-{ error: "Sorry, this product is currently unavailable." },
+{ error: "Sorry, this product does not have enough stock available." },
         { status: 400 }
       );
     }
 
     const stockUpdate = await Product.updateOne(
-      { _id: product._id, availableStock: { $gte: 1 } },
+      { _id: product._id, availableStock: { $gte: quantity } },
       {
-        $inc: { availableStock: -1, reservedStock: 1 },
+        $inc: { availableStock: -quantity, reservedStock: quantity },
         $set: {
-          status: product.availableStock === 1 ? "SOLD_OUT" : "AVAILABLE",
+          status: product.availableStock === quantity ? "SOLD_OUT" : "AVAILABLE",
         },
       },
       { session }
@@ -428,8 +430,9 @@ export async function POST(request: NextRequest) {
       productId: product._id,
       productCodeSnapshot: product.productCode,
       customerId: customer._id,
-      amount: product.price,
+      amount: product.price * quantity,
       priceSnapshot: product.price,
+      quantity,
       paymentStatus: "PENDING",
       orderStatus: "PENDING_PAYMENT_VERIFICATION",
       reservationExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
@@ -450,7 +453,7 @@ export async function POST(request: NextRequest) {
     // 5. Payment record (MANUAL_UPI, PENDING — screenshot verify hone ka wait)
     const payment = new Payment({
       orderId: order._id,
-      amount: product.price,
+      amount: product.price * quantity,
       method: "MANUAL_UPI",
       status: "PENDING",
     });

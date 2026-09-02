@@ -707,7 +707,7 @@ const handleChangeAddress = () => {
     fontWeight: 600,
   }}
 >
-   Upload LIVE Product/Color Photo
+   Upload LIVE Product/Color Photo <span style={{ fontSize: "0.8rem", color: "#a8927b", fontWeight: "normal" }}>(Optional)</span>
 </h3>
 
 <p
@@ -796,17 +796,16 @@ const handleChangeAddress = () => {
             </label>
 
           <button
-  type="button"
-  onClick={() => setStep(2)}
-  disabled={!referencePhoto}
-  style={{
-    ...goldPrimaryBtn,
-    opacity: referencePhoto ? 1 : 0.5,
-    cursor: referencePhoto ? "pointer" : "not-allowed",
-  }}
->
-  {referencePhoto ? "Continue" : "Upload photo to continue"}
-</button>
+            type="button"
+            onClick={() => setStep(2)}
+            style={{
+              ...goldPrimaryBtn,
+              opacity: 1,
+              cursor: "pointer",
+            }}
+          >
+            {referencePhoto ? "Continue" : "Skip & Continue"}
+          </button>
           </div>
         )}
 
