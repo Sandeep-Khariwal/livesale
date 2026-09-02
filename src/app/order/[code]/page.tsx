@@ -795,17 +795,23 @@ const handleChangeAddress = () => {
               />
             </label>
 
-          <button
-            type="button"
-            onClick={() => setStep(2)}
-            style={{
-              ...goldPrimaryBtn,
-              opacity: 1,
-              cursor: "pointer",
-            }}
-          >
-            {referencePhoto ? "Continue" : "Skip & Continue"}
-          </button>
+          {/* <button
+  type="button"
+  onClick={() => setStep(2)}
+  disabled={!referencePhoto}
+  style={{
+    ...goldPrimaryBtn,
+    opacity: referencePhoto ? 1 : 0.5,
+    cursor: referencePhoto ? "pointer" : "not-allowed",
+  }}
+>
+  {referencePhoto ? "Continue" : "Upload photo to continue"}
+</button> */}
+
+<button type="button" onClick={() => setStep(2)} style={goldPrimaryBtn}>
+  {referencePhoto ? "Continue" : "Continue without photo"}
+</button>
+{/* bns */}
           </div>
         )}
 
