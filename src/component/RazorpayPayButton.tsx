@@ -247,8 +247,22 @@ export default function RazorpayPayButton({
         },
 
         modal: {
-          ondismiss: () => {
-            setPayingOnline(false);
+          ondismiss: async () => {
+            // Customer closed the Razorpay popup without paying.
+            // Stock was already reserved when the Razorpay order was
+            // created, so we must release it here — otherwise stock
+            // stays locked forever even though no payment happened.
+            try {
+              await fetch("/api/orders/razorpay/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ razorpayOrderId: orderData.razorpayOrderId }),
+              });
+            } catch (err) {
+              console.error("Failed to release stock on cancel:", err);
+            } finally {
+              setPayingOnline(false);
+            }
           },
         },
       };
