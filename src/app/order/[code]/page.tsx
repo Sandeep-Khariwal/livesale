@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, use, useRef } from "react";
@@ -26,34 +25,39 @@ type DetailsPhase = "mobile" | "existing" | "new";
 const isTenDigitMobile = (v: string) => /^[6-9]\d{9}$/.test(v.trim());
 const isSixDigitPincode = (v: string) => /^\d{6}$/.test(v.trim());
 const isValidName = (v: string) => /^[A-Za-z][A-Za-z\s.'-]{1,}$/.test(v.trim());
-const isValidPlaceName = (v: string) => /^[A-Za-z][A-Za-z\s.'-]{1,}$/.test(v.trim());
+const isValidPlaceName = (v: string) =>
+  /^[A-Za-z][A-Za-z\s.'-]{1,}$/.test(v.trim());
 const isValidAddress = (v: string) => v.trim().length >= 10;
 
-export default function OrderPage({ params }: { params: Promise<{ code: string }> }) {
+export default function OrderPage({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}) {
   const router = useRouter();
   const { code } = use(params);
   const productCode = decodeURIComponent(code);
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [product, setProduct] = useState<any>(null);
   const [error, setError] = useState("");
-  
+
   const [step, setStep] = useState<Step>(1);
   const [phase, setPhase] = useState<DetailsPhase>("mobile");
   const [locating, setLocating] = useState(false);
-  
+
   const [mobile, setMobile] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [existingName, setExistingName] = useState("");
   const [existingAddress, setExistingAddress] = useState<any>(null);
-  
+
   const [razorpayLoading, setRazorpayLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
     whatsapp: "",
-      landmark: "",   // NEW
+    landmark: "", // NEW
 
     address: "",
     city: "",
@@ -64,10 +68,14 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [referencePhoto, setReferencePhoto] = useState<File | null>(null);
-  const [referencePhotoPreview, setReferencePhotoPreview] = useState<string | null>(null);
+  const [referencePhotoPreview, setReferencePhotoPreview] = useState<
+    string | null
+  >(null);
 
   const [screenshot, setScreenshot] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(
+    null,
+  );
 
   const [upiId, setUpiId] = useState("example@upi");
   const [qrCodeImageUrl, setQrCodeImageUrl] = useState<string | null>(null);
@@ -81,7 +89,9 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/products/check?code=${encodeURIComponent(productCode)}`).then((res) => res.json()),
+      fetch(`/api/products/check?code=${encodeURIComponent(productCode)}`).then(
+        (res) => res.json(),
+      ),
       fetch(`/api/settings`).then((res) => res.json()),
     ])
       .then(([productData, settingsData]) => {
@@ -92,7 +102,8 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
           setError(productData.error || "This product is sold out.");
         }
         if (settingsData.upiId) setUpiId(settingsData.upiId);
-        if (settingsData.qrCodeImageUrl) setQrCodeImageUrl(settingsData.qrCodeImageUrl);
+        if (settingsData.qrCodeImageUrl)
+          setQrCodeImageUrl(settingsData.qrCodeImageUrl);
         setLoading(false);
       })
       .catch(() => {
@@ -108,7 +119,9 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
 
   // ---------- STEP 1: REFERENCE PHOTO ----------
 
-  const handleReferencePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReferencePhotoChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setReferencePhoto(file);
@@ -131,7 +144,9 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
     setError("");
 
     try {
-      const res = await fetch(`/api/customers/lookup?mobile=${encodeURIComponent(mobile.trim())}`);
+      const res = await fetch(
+        `/api/customers/lookup?mobile=${encodeURIComponent(mobile.trim())}`,
+      );
       const data = await res.json();
 
       if (data.found && data.address) {
@@ -139,7 +154,12 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
         setExistingAddress(data.address);
         setPhase("existing");
       } else if (data.found && !data.address) {
-        setFormData((f) => ({ ...f, name: data.customer.name, mobile: mobile.trim(), whatsapp: data.customer.whatsapp || "" }));
+        setFormData((f) => ({
+          ...f,
+          name: data.customer.name,
+          mobile: mobile.trim(),
+          whatsapp: data.customer.whatsapp || "",
+        }));
         setPhase("new");
       } else {
         setFormData((f) => ({ ...f, mobile: mobile.trim() }));
@@ -152,33 +172,33 @@ export default function OrderPage({ params }: { params: Promise<{ code: string }
     }
   };
 
-const handleUseThisAddress = () => {
-  setFormData({
-    name: existingName,
-    mobile: mobile.trim(),
-    whatsapp: "",
-    address: existingAddress.address,
-    landmark: existingAddress.landmark || "",   // NEW
-    city: existingAddress.city,
-    state: existingAddress.state,
-    pincode: existingAddress.pincode,
-  });
-  setStep(3);
-};
+  const handleUseThisAddress = () => {
+    setFormData({
+      name: existingName,
+      mobile: mobile.trim(),
+      whatsapp: "",
+      address: existingAddress.address,
+      landmark: existingAddress.landmark || "", // NEW
+      city: existingAddress.city,
+      state: existingAddress.state,
+      pincode: existingAddress.pincode,
+    });
+    setStep(3);
+  };
 
-const handleChangeAddress = () => {
-  setFormData({
-    name: existingName,
-    mobile: mobile.trim(),
-    whatsapp: "",
-    address: existingAddress?.address || "",
-    landmark: existingAddress?.landmark || "",   // NEW
-    city: existingAddress?.city || "",
-    state: existingAddress?.state || "",
-    pincode: existingAddress?.pincode || "",
-  });
-  setPhase("new");
-};
+  const handleChangeAddress = () => {
+    setFormData({
+      name: existingName,
+      mobile: mobile.trim(),
+      whatsapp: "",
+      address: existingAddress?.address || "",
+      landmark: existingAddress?.landmark || "", // NEW
+      city: existingAddress?.city || "",
+      state: existingAddress?.state || "",
+      pincode: existingAddress?.pincode || "",
+    });
+    setPhase("new");
+  };
   const handleUseLocation = () => {
     if (!navigator.geolocation) return;
     setLocating(true);
@@ -188,14 +208,17 @@ const handleChangeAddress = () => {
         try {
           const { latitude, longitude } = pos.coords;
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
           );
           const data = await res.json();
           const addr = data.address || {};
 
           setFormData((f) => ({
             ...f,
-            address: [addr.road, addr.suburb, addr.neighbourhood].filter(Boolean).join(", ") || f.address,
+            address:
+              [addr.road, addr.suburb, addr.neighbourhood]
+                .filter(Boolean)
+                .join(", ") || f.address,
             city: addr.city || addr.town || addr.village || f.city,
             state: addr.state || f.state,
             pincode: addr.postcode || f.pincode,
@@ -206,11 +229,13 @@ const handleChangeAddress = () => {
           setLocating(false);
         }
       },
-      () => setLocating(false)
+      () => setLocating(false),
     );
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { id, value } = e.target;
     setFormData((f) => ({ ...f, [id]: value }));
     if (fieldErrors[id]) {
@@ -226,21 +251,24 @@ const handleChangeAddress = () => {
     const errors: Record<string, string> = {};
 
     if (!isValidName(formData.name)) {
-      errors.name = "Enter a valid full name (letters only, at least 2 characters).";
+      errors.name =
+        "Enter a valid full name (letters only, at least 2 characters).";
     }
     if (formData.whatsapp && !isTenDigitMobile(formData.whatsapp)) {
-      errors.whatsapp = "Enter a valid 10-digit WhatsApp number, or leave it blank.";
+      errors.whatsapp =
+        "Enter a valid 10-digit WhatsApp number, or leave it blank.";
     }
     if (!isValidAddress(formData.address)) {
-      errors.address = "Address looks too short. Please enter your full address.";
+      errors.address =
+        "Address looks too short. Please enter your full address.";
     }
 
     if (!isValidPlaceName(formData.city)) {
       errors.city = "Enter a valid city name (letters only).";
     }
     if (!formData.landmark.trim()) {
-  errors.landmark = "Please enter a landmark.";
-}
+      errors.landmark = "Please enter a landmark.";
+    }
     if (!isValidPlaceName(formData.state)) {
       errors.state = "Enter a valid state name (letters only).";
     }
@@ -279,7 +307,7 @@ const handleChangeAddress = () => {
   };
 
   const upiIntentLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(
-    "Merchant"
+    "Merchant",
   )}&am=${product?.price || 0}&cu=INR&tn=${encodeURIComponent(`Order ${productCode}`)}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -359,7 +387,8 @@ const handleChangeAddress = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(160deg, #1a0508 0%, #0a0304 60%, #12060a 100%)",
+          background:
+            "linear-gradient(160deg, #1a0508 0%, #0a0304 60%, #12060a 100%)",
           color: "#f6ecd9",
         }}
       >
@@ -378,7 +407,8 @@ const handleChangeAddress = () => {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(160deg, #1a0508 0%, #0a0304 60%, #12060a 100%)",
+          background:
+            "linear-gradient(160deg, #1a0508 0%, #0a0304 60%, #12060a 100%)",
           color: "#ffb0b0",
           padding: "2rem",
           textAlign: "center",
@@ -502,7 +532,8 @@ const handleChangeAddress = () => {
         position: "relative",
         minHeight: "100dvh",
         padding: "1.5rem 1rem 3rem",
-        background: "linear-gradient(160deg, #1a0508 0%, #0a0304 60%, #12060a 100%)",
+        background:
+          "linear-gradient(160deg, #1a0508 0%, #0a0304 60%, #12060a 100%)",
         display: "flex",
         justifyContent: "center",
         overflow: "hidden",
@@ -625,11 +656,24 @@ const handleChangeAddress = () => {
             >
               {product.name || `Order ${product.code}`}
             </h1>
-            <p style={{ fontSize: "1.05rem", fontWeight: 700, color: "#f3d68f", margin: 0 }}>
+            <p
+              style={{
+                fontSize: "1.05rem",
+                fontWeight: 700,
+                color: "#f3d68f",
+                margin: 0,
+              }}
+            >
               ₹{product.price}
             </p>
             {typeof product.stock === "number" && (
-              <p style={{ fontSize: "0.72rem", color: "#a8927b", margin: "0.15rem 0 0" }}>
+              <p
+                style={{
+                  fontSize: "0.72rem",
+                  color: "#a8927b",
+                  margin: "0.15rem 0 0",
+                }}
+              >
                 {product.stock} in stock
               </p>
             )}
@@ -637,7 +681,13 @@ const handleChangeAddress = () => {
         </div>
 
         {/* Step indicator */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "2.5rem",
+          }}
+        >
           {["Photo", "Details", "Payment", "Confirm"].map((label, i) => {
             const active = step >= ((i + 1) as Step);
             return (
@@ -653,8 +703,12 @@ const handleChangeAddress = () => {
                     justifyContent: "center",
                     fontSize: "0.85rem",
                     fontWeight: 700,
-                    border: active ? "1px solid #f3d68f" : "1px solid #d4af5a3d",
-                    background: active ? "linear-gradient(135deg, #f3d68f, #d4af5a)" : "transparent",
+                    border: active
+                      ? "1px solid #f3d68f"
+                      : "1px solid #d4af5a3d",
+                    background: active
+                      ? "linear-gradient(135deg, #f3d68f, #d4af5a)"
+                      : "transparent",
                     color: active ? "#2c0810" : "#a8927b",
                     boxShadow: active ? "0 0 16px -4px #d4af5a99" : "none",
                     transition: "all 0.3s ease",
@@ -696,30 +750,42 @@ const handleChangeAddress = () => {
 
         {/* ===== STEP 1: REFERENCE PHOTO ===== */}
         {step === 1 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
             <div>
-             <h3
-  style={{
-    fontFamily: "var(--font-cormorant)",
-    fontSize: "1.3rem",
-    color: "#f6ecd9",
-    margin: 0,
-    fontWeight: 600,
-  }}
->
-   Upload LIVE Product/Color Photo <span style={{ fontSize: "0.8rem", color: "#a8927b", fontWeight: "normal" }}>(Optional)</span>
-</h3>
+              <h3
+                style={{
+                  fontFamily: "var(--font-cormorant)",
+                  fontSize: "1.3rem",
+                  color: "#f6ecd9",
+                  margin: 0,
+                  fontWeight: 600,
+                }}
+              >
+                Upload LIVE Product/Color Photo{" "}
+                <span
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#a8927b",
+                    fontWeight: "normal",
+                  }}
+                >
+                  (Optional)
+                </span>
+              </h3>
 
-<p
-  style={{
-    margin: "0.4rem 0 0",
-    fontSize: "0.85rem",
-    color: "#a8927b",
-  }}
->
-  Upload a screenshot or photo of the saree/suit color you saw during the LIVE.
-  This helps us match the exact color and design correctly.
-</p>
+              <p
+                style={{
+                  margin: "0.4rem 0 0",
+                  fontSize: "0.85rem",
+                  color: "#a8927b",
+                }}
+              >
+                Upload a screenshot or photo of the saree/suit color you saw
+                during the LIVE. This helps us match the exact color and design
+                correctly.
+              </p>
             </div>
 
             <label
@@ -734,7 +800,9 @@ const handleChangeAddress = () => {
                 padding: referencePhotoPreview ? "1rem" : "2.25rem 1rem",
                 borderRadius: "0.75rem",
                 border: `1.5px dashed ${referencePhotoPreview ? "#6fcf97" : "#d4af5a66"}`,
-                backgroundColor: referencePhotoPreview ? "#6fcf9710" : "#00000033",
+                backgroundColor: referencePhotoPreview
+                  ? "#6fcf9710"
+                  : "#00000033",
                 cursor: "pointer",
                 textAlign: "center",
                 transition: "all 0.2s ease",
@@ -752,7 +820,14 @@ const handleChangeAddress = () => {
                       border: "1px solid #d4af5a3d",
                     }}
                   />
-                  <p style={{ color: "#6fcf97", fontWeight: 600, margin: "0.3rem 0 0", fontSize: "0.88rem" }}>
+                  <p
+                    style={{
+                      color: "#6fcf97",
+                      fontWeight: 600,
+                      margin: "0.3rem 0 0",
+                      fontSize: "0.88rem",
+                    }}
+                  >
                     ✓ Reference photo added — tap to change
                   </p>
                 </>
@@ -769,7 +844,13 @@ const handleChangeAddress = () => {
                       background: "linear-gradient(135deg, #f3d68f, #d4af5a)",
                     }}
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <path
                         d="M4 7h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z"
                         stroke="#2c0810"
@@ -777,13 +858,30 @@ const handleChangeAddress = () => {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
-                      <circle cx="12" cy="13" r="3.5" stroke="#2c0810" strokeWidth="2" />
+                      <circle
+                        cx="12"
+                        cy="13"
+                        r="3.5"
+                        stroke="#2c0810"
+                        strokeWidth="2"
+                      />
                     </svg>
                   </div>
-                  <p style={{ margin: 0, color: "#f6ecd9", fontWeight: 600, fontSize: "0.95rem" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#f6ecd9",
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                    }}
+                  >
                     Tap to choose photo
                   </p>
-                  <p style={{ margin: 0, color: "#a8927b", fontSize: "0.78rem" }}>PNG or JPG · Reference taken from LIVE</p>
+                  <p
+                    style={{ margin: 0, color: "#a8927b", fontSize: "0.78rem" }}
+                  >
+                    PNG or JPG · Reference taken from LIVE
+                  </p>
                 </>
               )}
               <input
@@ -791,33 +889,32 @@ const handleChangeAddress = () => {
                 type="file"
                 accept="image/*"
                 onChange={handleReferencePhotoChange}
-                style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: 0,
+                  cursor: "pointer",
+                }}
               />
             </label>
 
-          {/* <button
-  type="button"
-  onClick={() => setStep(2)}
-  disabled={!referencePhoto}
-  style={{
-    ...goldPrimaryBtn,
-    opacity: referencePhoto ? 1 : 0.5,
-    cursor: referencePhoto ? "pointer" : "not-allowed",
-  }}
->
-  {referencePhoto ? "Continue" : "Upload photo to continue"}
-</button> */}
-
-<button type="button" onClick={() => setStep(2)} style={goldPrimaryBtn}>
-  {referencePhoto ? "Continue" : "Continue without photo"}
-</button>
-{/* bns */}
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              style={goldPrimaryBtn}
+            >
+              {referencePhoto ? "Continue" : "Continue without photo"}
+            </button>
+            {/* bns */}
           </div>
         )}
 
         {/* ===== STEP 2: DETAILS ===== */}
         {step === 2 && phase === "mobile" && (
-          <form onSubmit={handleMobileSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <form
+            onSubmit={handleMobileSubmit}
+            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+          >
             <h3
               style={{
                 fontFamily: "var(--font-cormorant)",
@@ -843,13 +940,21 @@ const handleChangeAddress = () => {
             />
             {mobileError && <p style={errorTextStyle}>{mobileError}</p>}
             <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
-              <button type="button" onClick={() => setStep(1)} style={goldSecondaryBtn}>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                style={goldSecondaryBtn}
+              >
                 BACK
               </button>
               <button
                 type="submit"
                 disabled={loading || !mobile.trim()}
-                style={{ ...goldPrimaryBtn, flex: 1, opacity: loading || !mobile.trim() ? 0.6 : 1 }}
+                style={{
+                  ...goldPrimaryBtn,
+                  flex: 1,
+                  opacity: loading || !mobile.trim() ? 0.6 : 1,
+                }}
               >
                 {loading ? "Checking..." : "Continue"}
               </button>
@@ -858,7 +963,9 @@ const handleChangeAddress = () => {
         )}
 
         {step === 2 && phase === "existing" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
             <h3
               style={{
                 fontFamily: "var(--font-cormorant)",
@@ -870,16 +977,29 @@ const handleChangeAddress = () => {
             >
               {existingName}
             </h3>
-            <p style={{ color: "#6fcf97", fontWeight: 600, margin: 0 }}>Your details are already available.</p>
-            <div style={{ padding: "1rem", borderRadius: "0.5rem", border: "1px solid #d4af5a3d", color: "#e8dccd" }}>
+            <p style={{ color: "#6fcf97", fontWeight: 600, margin: 0 }}>
+              Your details are already available.
+            </p>
+            <div
+              style={{
+                padding: "1rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d4af5a3d",
+                color: "#e8dccd",
+              }}
+            >
               <p style={{ margin: "0 0 0.5rem" }}>{existingAddress.address}</p>
-                {existingAddress.landmark && (
-    <p style={{ margin: "0 0 0.5rem", opacity: 0.85 }}>Landmark: {existingAddress.landmark}</p>
-  )}
+              {existingAddress.landmark && (
+                <p style={{ margin: "0 0 0.5rem", opacity: 0.85 }}>
+                  Landmark: {existingAddress.landmark}
+                </p>
+              )}
               <p style={{ margin: 0 }}>
-  <p style={{ margin: 0 }}>
-    {existingAddress.city}, {existingAddress.state} - {existingAddress.pincode}
-  </p>              </p>
+                <p style={{ margin: 0 }}>
+                  {existingAddress.city}, {existingAddress.state} -{" "}
+                  {existingAddress.pincode}
+                </p>{" "}
+              </p>
               <p style={{ margin: "0.5rem 0 0", opacity: 0.7 }}>📱 {mobile}</p>
             </div>
             <button onClick={handleUseThisAddress} style={goldPrimaryBtn}>
@@ -892,7 +1012,11 @@ const handleChangeAddress = () => {
         )}
 
         {step === 2 && phase === "new" && (
-          <form onSubmit={handleConfirmAddress} style={{ display: "flex", flexDirection: "column", gap: "1rem" }} noValidate>
+          <form
+            onSubmit={handleConfirmAddress}
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            noValidate
+          >
             <h3
               style={{
                 fontFamily: "var(--font-cormorant)",
@@ -922,31 +1046,58 @@ const handleChangeAddress = () => {
               {locating ? "Detecting your location..." : "📍 USE MY LOCATION"}
             </button>
 
-            <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "1fr 1fr" }}>
+            <div
+              style={{
+                display: "grid",
+                gap: "1rem",
+                gridTemplateColumns: "1fr 1fr",
+              }}
+            >
               <div style={{ gridColumn: "1 / -1" }}>
-                <label htmlFor="name" style={labelStyle}>Full Name</label>
+                <label htmlFor="name" style={labelStyle}>
+                  Full Name
+                </label>
                 <input
                   id="name"
                   type="text"
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  style={fieldErrors.name ? goldInputErrorStyle : goldInputStyle}
+                  style={
+                    fieldErrors.name ? goldInputErrorStyle : goldInputStyle
+                  }
                 />
-                {fieldErrors.name && <p style={errorTextStyle}>{fieldErrors.name}</p>}
+                {fieldErrors.name && (
+                  <p style={errorTextStyle}>{fieldErrors.name}</p>
+                )}
               </div>
               <div>
-                <label htmlFor="mobile" style={labelStyle}>Mobile Number</label>
-                <input id="mobile" type="tel" value={formData.mobile || mobile} disabled style={{ ...goldInputStyle, opacity: 0.6 }} />
+                <label htmlFor="mobile" style={labelStyle}>
+                  Mobile Number
+                </label>
+                <input
+                  id="mobile"
+                  type="tel"
+                  value={formData.mobile || mobile}
+                  disabled
+                  style={{ ...goldInputStyle, opacity: 0.6 }}
+                />
               </div>
               <div>
-                <label htmlFor="whatsapp" style={labelStyle}>WhatsApp (optional)</label>
+                <label htmlFor="whatsapp" style={labelStyle}>
+                  WhatsApp (optional)
+                </label>
                 <input
                   id="whatsapp"
                   type="tel"
                   value={formData.whatsapp}
                   onChange={(e) => {
-                    setFormData((f) => ({ ...f, whatsapp: e.target.value.replace(/[^\d]/g, "").slice(0, 10) }));
+                    setFormData((f) => ({
+                      ...f,
+                      whatsapp: e.target.value
+                        .replace(/[^\d]/g, "")
+                        .slice(0, 10),
+                    }));
                     if (fieldErrors.whatsapp) {
                       setFieldErrors((prev) => {
                         const next = { ...prev };
@@ -955,68 +1106,97 @@ const handleChangeAddress = () => {
                       });
                     }
                   }}
-                  style={fieldErrors.whatsapp ? goldInputErrorStyle : goldInputStyle}
+                  style={
+                    fieldErrors.whatsapp ? goldInputErrorStyle : goldInputStyle
+                  }
                 />
-                {fieldErrors.whatsapp && <p style={errorTextStyle}>{fieldErrors.whatsapp}</p>}
+                {fieldErrors.whatsapp && (
+                  <p style={errorTextStyle}>{fieldErrors.whatsapp}</p>
+                )}
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label htmlFor="address" style={labelStyle}>Address</label>
+                <label htmlFor="address" style={labelStyle}>
+                  Address
+                </label>
                 <textarea
                   id="address"
                   value={formData.address}
                   onChange={handleChange}
                   required
                   rows={2}
-                  style={fieldErrors.address ? goldInputErrorStyle : goldInputStyle}
+                  style={
+                    fieldErrors.address ? goldInputErrorStyle : goldInputStyle
+                  }
                 />
-                {fieldErrors.address && <p style={errorTextStyle}>{fieldErrors.address}</p>}
+                {fieldErrors.address && (
+                  <p style={errorTextStyle}>{fieldErrors.address}</p>
+                )}
               </div>
 
               {/* new */}
               <div style={{ gridColumn: "1 / -1" }}>
-  <label htmlFor="landmark" style={labelStyle}>Landmark</label>
-  <input
-    id="landmark"
-    type="text"
-    placeholder="e.g. Near XYZ Temple / ABC School"
-    value={formData.landmark}
-    onChange={handleChange}
-    style={goldInputStyle}
-  />
-</div>
+                <label htmlFor="landmark" style={labelStyle}>
+                  Landmark
+                </label>
+                <input
+                  id="landmark"
+                  type="text"
+                  placeholder="e.g. Near XYZ Temple / ABC School"
+                  value={formData.landmark}
+                  onChange={handleChange}
+                  style={goldInputStyle}
+                />
+              </div>
               <div>
-                <label htmlFor="city" style={labelStyle}>City</label>
+                <label htmlFor="city" style={labelStyle}>
+                  City
+                </label>
                 <input
                   id="city"
                   type="text"
                   value={formData.city}
                   onChange={handleChange}
                   required
-                  style={fieldErrors.city ? goldInputErrorStyle : goldInputStyle}
+                  style={
+                    fieldErrors.city ? goldInputErrorStyle : goldInputStyle
+                  }
                 />
-                {fieldErrors.city && <p style={errorTextStyle}>{fieldErrors.city}</p>}
+                {fieldErrors.city && (
+                  <p style={errorTextStyle}>{fieldErrors.city}</p>
+                )}
               </div>
               <div>
-                <label htmlFor="state" style={labelStyle}>State</label>
+                <label htmlFor="state" style={labelStyle}>
+                  State
+                </label>
                 <input
                   id="state"
                   type="text"
                   value={formData.state}
                   onChange={handleChange}
                   required
-                  style={fieldErrors.state ? goldInputErrorStyle : goldInputStyle}
+                  style={
+                    fieldErrors.state ? goldInputErrorStyle : goldInputStyle
+                  }
                 />
-                {fieldErrors.state && <p style={errorTextStyle}>{fieldErrors.state}</p>}
+                {fieldErrors.state && (
+                  <p style={errorTextStyle}>{fieldErrors.state}</p>
+                )}
               </div>
               <div>
-                <label htmlFor="pincode" style={labelStyle}>Pincode</label>
+                <label htmlFor="pincode" style={labelStyle}>
+                  Pincode
+                </label>
                 <input
                   id="pincode"
                   type="text"
                   inputMode="numeric"
                   value={formData.pincode}
                   onChange={(e) => {
-                    setFormData((f) => ({ ...f, pincode: e.target.value.replace(/[^\d]/g, "").slice(0, 6) }));
+                    setFormData((f) => ({
+                      ...f,
+                      pincode: e.target.value.replace(/[^\d]/g, "").slice(0, 6),
+                    }));
                     if (fieldErrors.pincode) {
                       setFieldErrors((prev) => {
                         const next = { ...prev };
@@ -1026,9 +1206,13 @@ const handleChangeAddress = () => {
                     }
                   }}
                   required
-                  style={fieldErrors.pincode ? goldInputErrorStyle : goldInputStyle}
+                  style={
+                    fieldErrors.pincode ? goldInputErrorStyle : goldInputStyle
+                  }
                 />
-                {fieldErrors.pincode && <p style={errorTextStyle}>{fieldErrors.pincode}</p>}
+                {fieldErrors.pincode && (
+                  <p style={errorTextStyle}>{fieldErrors.pincode}</p>
+                )}
               </div>
             </div>
 
@@ -1040,7 +1224,9 @@ const handleChangeAddress = () => {
 
         {/* ===== STEP 3: PAYMENT ===== */}
         {step === 3 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
+          >
             <div
               style={{
                 display: "flex",
@@ -1064,8 +1250,25 @@ const handleChangeAddress = () => {
                 textAlign: "center",
               }}
             >
-              <p style={{ margin: "0 0 0.4rem", color: "#e8dccd", fontSize: "0.85rem" }}>Amount to Pay</p>
-              <p style={{ fontSize: "1.9rem", fontWeight: 700, margin: 0, color: "#f3d68f" }}>₹{product.price}</p>
+              <p
+                style={{
+                  margin: "0 0 0.4rem",
+                  color: "#e8dccd",
+                  fontSize: "0.85rem",
+                }}
+              >
+                Amount to Pay
+              </p>
+              <p
+                style={{
+                  fontSize: "1.9rem",
+                  fontWeight: 700,
+                  margin: 0,
+                  color: "#f3d68f",
+                }}
+              >
+                ₹{product.price}
+              </p>
             </div>
 
             {/* ===== NEW: RAZORPAY — INSTANT PAYMENT (primary option) ===== */}
@@ -1085,15 +1288,23 @@ const handleChangeAddress = () => {
                 Instant Payment — Recommended
               </div>
 
-             <RazorpayPayButton
-  productCode={product.code}
-  amount={product.price}
-  customerDetails={formData}
-  referencePhoto={referencePhoto}
-  onError={setError}
-/>
-              <p style={{ margin: 0, fontSize: "0.75rem", color: "#a8927b", textAlign: "center" }}>
-                Order confirms automatically the moment payment succeeds — no screenshot needed.
+              <RazorpayPayButton
+                productCode={product.code}
+                amount={product.price}
+                customerDetails={formData}
+                referencePhoto={referencePhoto}
+                onError={setError}
+              />
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.75rem",
+                  color: "#a8927b",
+                  textAlign: "center",
+                }}
+              >
+                Order confirms automatically the moment payment succeeds — no
+                screenshot needed.
               </p>
             </div>
 
@@ -1119,8 +1330,8 @@ const handleChangeAddress = () => {
                 Pay using any UPI app
               </div>
 
-              
-             <a   href={upiIntentLink}
+              <a
+                href={upiIntentLink}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -1138,12 +1349,25 @@ const handleChangeAddress = () => {
                   boxShadow: "0 8px 24px -8px #4fae7a80",
                 }}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <path d="M13 3L4 14H11L10 21L20 9H13L13 3Z" fill="#08130c" />
                 </svg>
                 Pay ₹{product.price} Now
               </a>
-              <p style={{ margin: "-0.4rem 0 0", fontSize: "0.75rem", color: "#a8927b", textAlign: "center" }}>
+              <p
+                style={{
+                  margin: "-0.4rem 0 0",
+                  fontSize: "0.75rem",
+                  color: "#a8927b",
+                  textAlign: "center",
+                }}
+              >
                 Opens your UPI app — Google Pay, PhonePe, Paytm or BHIM
               </p>
 
@@ -1191,8 +1415,26 @@ const handleChangeAddress = () => {
                 }}
               >
                 <div>
-                  <p style={{ margin: "0 0 0.15rem", opacity: 0.7, fontSize: "0.72rem", color: "#e8dccd" }}>UPI ID</p>
-                  <p style={{ fontSize: "1rem", fontWeight: 600, margin: 0, color: "#f6ecd9" }}>{upiId}</p>
+                  <p
+                    style={{
+                      margin: "0 0 0.15rem",
+                      opacity: 0.7,
+                      fontSize: "0.72rem",
+                      color: "#e8dccd",
+                    }}
+                  >
+                    UPI ID
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      margin: 0,
+                      color: "#f6ecd9",
+                    }}
+                  >
+                    {upiId}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -1231,15 +1473,31 @@ const handleChangeAddress = () => {
                 type="checkbox"
                 checked={paymentConfirmed}
                 onChange={(e) => setPaymentConfirmed(e.target.checked)}
-                style={{ width: "18px", height: "18px", accentColor: "#4fae7a", cursor: "pointer" }}
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  accentColor: "#4fae7a",
+                  cursor: "pointer",
+                }}
               />
-              <span style={{ fontSize: "0.88rem", color: "#f6ecd9", fontWeight: 500 }}>
-                I have successfully completed the payment of ₹{product.price} manually via UPI
+              <span
+                style={{
+                  fontSize: "0.88rem",
+                  color: "#f6ecd9",
+                  fontWeight: 500,
+                }}
+              >
+                I have successfully completed the payment of ₹{product.price}{" "}
+                manually via UPI
               </span>
             </label>
 
             <div style={{ display: "flex", gap: "1rem" }}>
-              <button type="button" onClick={() => setStep(2)} style={goldSecondaryBtn}>
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                style={goldSecondaryBtn}
+              >
                 BACK
               </button>
               <button
@@ -1261,7 +1519,10 @@ const handleChangeAddress = () => {
 
         {/* ===== STEP 4: SCREENSHOT & CONFIRM (manual UPI only) ===== */}
         {step === 4 && (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
+          >
             <div>
               <h3
                 style={{
@@ -1274,8 +1535,15 @@ const handleChangeAddress = () => {
               >
                 Confirm Your Order
               </h3>
-              <p style={{ margin: "0.4rem 0 0", fontSize: "0.85rem", color: "#a8927b" }}>
-                Upload the screenshot showing your successful payment of ₹{product.price}.
+              <p
+                style={{
+                  margin: "0.4rem 0 0",
+                  fontSize: "0.85rem",
+                  color: "#a8927b",
+                }}
+              >
+                Upload the screenshot showing your successful payment of ₹
+                {product.price}.
               </p>
             </div>
 
@@ -1309,7 +1577,14 @@ const handleChangeAddress = () => {
                       border: "1px solid #d4af5a3d",
                     }}
                   />
-                  <p style={{ color: "#6fcf97", fontWeight: 600, margin: "0.3rem 0 0", fontSize: "0.88rem" }}>
+                  <p
+                    style={{
+                      color: "#6fcf97",
+                      fontWeight: 600,
+                      margin: "0.3rem 0 0",
+                      fontSize: "0.88rem",
+                    }}
+                  >
                     ✓ Screenshot added — tap to change
                   </p>
                 </>
@@ -1326,7 +1601,13 @@ const handleChangeAddress = () => {
                       background: "linear-gradient(135deg, #f3d68f, #d4af5a)",
                     }}
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <path
                         d="M12 16V4M12 4L7 9M12 4L17 9"
                         stroke="#2c0810"
@@ -1343,10 +1624,21 @@ const handleChangeAddress = () => {
                       />
                     </svg>
                   </div>
-                  <p style={{ margin: 0, color: "#f6ecd9", fontWeight: 600, fontSize: "0.95rem" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#f6ecd9",
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                    }}
+                  >
                     Tap to choose screenshot
                   </p>
-                  <p style={{ margin: 0, color: "#a8927b", fontSize: "0.78rem" }}>PNG or JPG · payment confirmation page</p>
+                  <p
+                    style={{ margin: 0, color: "#a8927b", fontSize: "0.78rem" }}
+                  >
+                    PNG or JPG · payment confirmation page
+                  </p>
                 </>
               )}
               <input
@@ -1355,12 +1647,21 @@ const handleChangeAddress = () => {
                 accept="image/*"
                 onChange={handleScreenshotChange}
                 required
-                style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: 0,
+                  cursor: "pointer",
+                }}
               />
             </label>
 
             <div style={{ display: "flex", gap: "1rem" }}>
-              <button type="button" onClick={() => setStep(3)} style={goldSecondaryBtn}>
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                style={goldSecondaryBtn}
+              >
                 BACK
               </button>
               <button
